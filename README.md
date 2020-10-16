@@ -20,4 +20,4 @@ python plot_vmaf.py vmaf.xml -o plot.svg
 ## Requirements
 Python 3  
 Matplotlib  
-Numpy  
+Numpy
