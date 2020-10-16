@@ -22,7 +22,31 @@ python plot_vmaf.py vmaf.xml -o plot.svg
 
 ## Options
 ```
--o --output ["file"]    Graph output file, file extension will change type of output (default plot.png)
+usage: plot_vmaf.py [-h] [-o OUTPUT] [-l {default,min,zero,custom}]
+                    [-c CUSTOM] [-r {720p,1080p,1440p,4k}]
+                    VMAF_FILE
+
+Plot VMAF to graph, save it as both a static image and as a transparent animated video file.
+
+positional arguments:
+  VMAF_FILE             VMAF report file.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -o OUTPUT, --output OUTPUT
+                        Output filename (default: vmaf.png).
+                        Also defines the name of the output graph (default: vmaf.mov).
+  -l {default,min,zero,custom}, --lower-boundary {default,min,zero,custom}
+                        Choose what the lowest value of the graph will be.
+                        * "default" uses the lowest VMAF value minus 5  as the lowest point of the y-axis so the values aren't so stretched vertically.
+                        * "min" will use whatever the lowest VMAF value is as the lowest point of the y-axis. Makes the data look a bit stretched vertically.
+                        * "zero" will explicitly use 0 as the lowest point on the y-axis. Makes the data look a bit compressed vertically.
+                        * "custom" will use the value entered by the user in the "-c" / "--custom" option.
+  -c CUSTOM, --custom CUSTOM
+                        Enter custom minimum point for y-axis. Requires "-l" / "--lower-boundary" set to "custom" to work.
+                        This option expects an integer value.
+  -r {720p,1080p,1440p,4k}, --resolution {720p,1080p,1440p,4k}
+                        Choose the resolution for the graph image and video. Note that higher values will mean drastically larger files.
 ```
 
 ## Requirements
