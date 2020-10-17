@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse as argp
+import math
 import matplotlib.pyplot as plt
 from matplotlib import animation
 import numpy as np
@@ -28,21 +29,23 @@ def plot_vmaf(vmafs, fps, low, res, custom):
     # Plot
     if res == "720p":
         plt.figure(figsize=(12.8, 7.2), dpi=800)
-        plt.rcParams.update({"font.size": 14})
+        plt.rcParams.update({"font.size": 26})
     elif res == "1080p":
         plt.figure(figsize=(19.2, 10.8), dpi=800)
-        plt.rcParams.update({"font.size": 20})
+        plt.rcParams.update({"font.size": 26})
     elif res == "1440p":
         plt.figure(figsize=(25.6, 14.4), dpi=800)
         plt.rcParams.update({"font.size": 26})
     elif res == "4k":
         plt.figure(figsize=(38.4, 21.6), dpi=800)
-        plt.rcParams.update({"font.size": 32})
+        plt.rcParams.update({"font.size": 26})
+
     [plt.axhline(i, color="grey", linewidth=0.4) for i in range(0, 100)]
     [plt.axhline(i, color="black", linewidth=0.6) for i in range(0, 100, 5)]
     plt.plot(x, vmafs, label=f"Frames: {len(vmafs)} \nMean:{mean}\n" f"0.01%: {perc_001} \n0.1%: {perc_01} \n1%: {perc_1} \n25%: {perc_25} \n75%: {perc_75}", linewidth=0.7)
     plt.ylabel("VMAF")
     plt.legend(loc="upper center", bbox_to_anchor=(0.5, -0.05), fancybox=True, shadow=True)
+
     lower_limit = 0
     if low == "default":
         if int(perc_001) > 5:
@@ -53,6 +56,7 @@ def plot_vmaf(vmafs, fps, low, res, custom):
         lower_limit = 0
     elif low == "custom":
         lower_limit = int(args.custom)
+
     plt.ylim(lower_limit, 100)
     plt.tight_layout()
     plt.margins(0)
