@@ -12,22 +12,17 @@ has a transparent background.
 
 ## Usage
 ```bash
-python plot_vmaf.py [-h] [-o OUTPUT] vmaf_file
+usage: plot_vmaf.py [-h] [-o OUTPUT] [-l {default,min,zero,custom}] [-c CUSTOM] [-r {720p,1080p,1440p,4k}] [-d DPI] VMAF_FILE
 ```
 
 ## Example
+This creates an image and video with 1440p resolution, 500 DPI, and the y-axis range is 0 to 100.
 ```bash
-python plot_vmaf.py vmaf.xml -o plot.svg
+python plot_vmaf.py vmaf.xml -o plot.svg -r 1440p -d 500 -l zero
 ```
 
 ## Options
 ```
-usage: plot_vmaf.py [-h] [-o OUTPUT] [-l {default,min,zero,custom}]
-                    [-c CUSTOM] [-r {720p,1080p,1440p,4k}] [-d DPI]
-                    VMAF_FILE
-
-Plot VMAF to graph, save it as both a static image and as a transparent animated video file.
-
 positional arguments:
   VMAF_FILE             VMAF report file.
 
@@ -57,6 +52,7 @@ optional arguments:
 Python 3
 Matplotlib
 Numpy
+FFMpeg
 
 Install them with either of the following commands:
 ```
@@ -70,20 +66,19 @@ python -m pip install -r requirements.txt
 
 # Quality & Performance Considerations
 The default resolution for the graph image and video is 1080p.
-Higher resolutions don't necessarily mean a higher quality image, it just makes it easier to scale to your photo or video editor's timeline resolution.
-Higher resolutions don't really take any more time encode the photo or video graph for, and help prevent any quality loss from scaling in any form of photo or video editor.
+For the image, resolution is the only factor in the file's quality. DPI has no effect on the image file.
 
-The default DPI for the image is 800, which takes almost no time to render and save, and thus is not user-configurable at run-time.
-The default DPI value for the video is 100, as going higher means that the video will take exponentially longer to encode.
-In this case, video DPI is related to the bitrate that the video will have, leading to the axes and graph lines looking much better and less aliased.
+For the video, resolution and DPI are multiplied to get the final output resolution of the video.
+100 DPI is equivalent to a 1x scale on the resolution, and 200 DPI is a 2x scale.
+This does not mean that picking a DPI for a 720p video will make it look the same as a 1080p video with 100 DPI.
+The lines, axes, and graph labels will all be scaled differently depending on the resolution.
+
+
 For example, using an AMD Ryzen 3700X, these were my encoding times for a 521 frame some resolutions and DPI values:
-Resolution | DPI | Encode Time
-720p | 100 | 0H : 0M : 9.81S
-720p | 300 | 0H : 1M : 21.53S
-720p | 800 | 0H : 12M : 55.02S
-1080p | 100 | 0H : 0M : 10.34S
-1080p | 300 | 0H : 1M : 22.09S
-1080p | 800 | 0H : 12M : 54.17S
-1440p | 100 | 0H : 0M : 11.66S
-1440p | 300 | 0H : 1M : 22.71S
-1440p | 800 | 0H : 13M : 23.91S
+Resolution | DPI | Effective Video Resolution | Encode Time
+720p | 100 | 1280x720 | 0H : 0M : 6.63S
+720p | 300 | 3840x2160p | 0H : 0M : 36.16S
+720p | 800 | 10240x5760 | 0H : 5M : 11.06S
+1080p | 100 | 1920x1080 | 0H : 0M : 11.16S
+1080p | 300 | 5760x3240 | 0H : 1M : 23.76S
+1080p | 800 | 15360x8640 | 0H : 15M : 6.67S

@@ -20,7 +20,6 @@ def anim_progress(cur_frame, total_frames):
 def plot_vmaf(vmafs, fps, low, res, custom, dpi):
     # Create datapoints
     x = [x for x in range(len(vmafs))]
-    # mean = round(sum(vmafs) / len(vmafs), 3)
     mean = round(statistics.fmean(vmafs), 3)
     median = round(statistics.median(vmafs), 3)
     perc_001 = round(np.percentile(vmafs, 0.01), 3)
@@ -32,22 +31,31 @@ def plot_vmaf(vmafs, fps, low, res, custom, dpi):
     # Plot
     if res == "720p":
         plt.figure(figsize=(12.8, 7.2), dpi=800)
-        plt.rcParams.update({"font.size": 26})
     elif res == "1080p":
         plt.figure(figsize=(19.2, 10.8), dpi=800)
-        plt.rcParams.update({"font.size": 26})
     elif res == "1440p":
         plt.figure(figsize=(25.6, 14.4), dpi=800)
-        plt.rcParams.update({"font.size": 26})
     elif res == "4k":
         plt.figure(figsize=(38.4, 21.6), dpi=800)
-        plt.rcParams.update({"font.size": 26})
+
+    plt.rcParams.update({
+        "figure.facecolor":  (0.0, 0.0, 0.0, 0.0),
+        "figure.edgecolor":  "black",
+        "axes.facecolor":    (0.0, 0.0, 0.0, 0.0),
+        "savefig.facecolor": (0.0, 0.0, 0.0, 0.0),
+        "legend.facecolor": (0.0, 0.0, 0.0, 0.0),
+        "legend.edgecolor": 0.0,
+        "legend.frameon": True,
+        "savefig.transparent": True,
+        "animation.codec": "qtrle",
+        "font.size": 26,
+        })
 
     [plt.axhline(i, color="grey", linewidth=0.4) for i in range(0, 100)]
     [plt.axhline(i, color="black", linewidth=0.6) for i in range(0, 100, 5)]
     plt.plot(x, vmafs, label=f"Frames: {len(vmafs)} \nMean:{mean}\nMedian:{median}\n" f"0.01%: {perc_001} \n0.1%: {perc_01} \n1%: {perc_1} \n25%: {perc_25} \n75%: {perc_75}", linewidth=0.7)
     plt.ylabel("VMAF")
-    plt.legend(loc="upper center", bbox_to_anchor=(0.5, -0.05), fancybox=True, shadow=True)
+    plt.legend(loc="upper center", bbox_to_anchor=(0.5, -0.05), fancybox=True, shadow=False)
     plt.locator_params(axis="y", nbins=5)
 
     lower_limit = 0
@@ -67,20 +75,28 @@ def plot_vmaf(vmafs, fps, low, res, custom, dpi):
 
     # Save plot to image file
     image_name = args.output.replace(".\\", "").split(".")
-    image_file = "{0}_{1}_{2}_dpi{3}.{4}" .format("".join(image_name[0:-1]), res, low, dpi, image_name[-1])
+    image_file = "{0}_{1}_{2}_dpi{3}.{4}" .format("".join(image_name[0:-1]), res, low, int(dpi), image_name[-1])
     print("Saving graph to image...")
     plt.savefig(image_file, dpi=800)
     print("Done!")
 
     fig, ax = plt.subplots()
-    fig.patch.set_alpha(0.)
-    fig.set_size_inches(19.2, 10.8)
+    fig.patch.set_alpha(0.0)
+    if res == "720p":
+        fig.set_size_inches(12.8, 7.2)
+    elif res == "1080p":
+        fig.set_size_inches(19.2, 10.8)
+    elif res == "1440p":
+        fig.set_size_inches(25.6, 14.4)
+    elif res == "4k":
+        fig.set_size_inches(38.4, 21.6)
     fig.dpi = dpi
 
     ax.set_ylim(lower_limit, 100)
     ax.set_xlim(x[0] - x[60], x[60])
     ax.set_xticklabels([])
     line, = ax.plot(x, vmafs)
+    fig.patch.set_alpha(0.0)
 
     def init():
         line.set_data([], [])
@@ -97,13 +113,11 @@ def plot_vmaf(vmafs, fps, low, res, custom, dpi):
         fig, animate, init_func=init, frames=length, interval=float(1000 / fps), blit=True, save_count=50)
 
     anim_name = args.output.replace(".\\", "").split(".")
-    anim_file = "{0}_{1}_{2}_dpi{3}.{4}" .format("".join(anim_name[0:-1]), res, low, dpi, "mov")
+    anim_file = "{0}_{1}_{2}_dpi{3}.{4}" .format("".join(anim_name[0:-1]), res, low, int(dpi), "mov")
 
     print("Saving animated graph to video...")
     start = time.time()
-    # anim.save(str(os.getcwd()) + "/" + anim_file, extra_args=["-c:v", "prores_ks", "-bits_per_mb", "8000", "-pix_fmt", "yuva444p10le", "-alpha_bits", "16", "-profile:v", "4444"], fps=60, dpi="figure", savefig_kwargs={"transparent": True, "facecolor": "none"}, progress_callback=anim_progress)
-    # anim.save(str(os.getcwd()) + "/" + anim_file, extra_args=["-c:v", "vp9", "-crf", "0", "-pix_fmt", "yuva444p10le"], fps=60, dpi=dpi, savefig_kwargs={"transparent": True, "facecolor": "none"}, progress_callback=anim_progress)
-    anim.save(str(os.getcwd()) + "/" + anim_file, extra_args=["-c:v", "qtrle"], fps=fps, dpi="figure", savefig_kwargs={"transparent": True, "facecolor": "none"}, progress_callback=anim_progress)
+    anim.save(str(os.getcwd()) + "/" + anim_file, extra_args=["-c:v", "qtrle"], fps=fps, dpi="figure", savefig_kwargs={"transparent": True}, progress_callback=anim_progress)
     anim_progress(length, length)
     end = time.time()
     time_taken = end - start
@@ -163,7 +177,7 @@ def parse_arguments():
     dpi_help = "Choose the DPI for the graph image and video (Default is 100).\n"
     dpi_help += "Note that higher values will mean drastically larger files and take substantially longer to encode.\n"
     dpi_help += "This setting applies only to the video file, not the image file."
-    parser.add_argument("-d", "--dpi", dest="dpi", type=int, default="100", help=dpi_help)
+    parser.add_argument("-d", "--dpi", dest="dpi", type=float, default="100", help=dpi_help)
 
     args = parser.parse_args()
 
