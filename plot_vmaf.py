@@ -25,8 +25,6 @@ def plot_vmaf(vmafs, fps, low, res, custom, dpi):
     perc_001 = round(np.percentile(vmafs, 0.01), 3)
     perc_01 = round(np.percentile(vmafs, 0.1), 3)
     perc_1 = round(np.percentile(vmafs, 1), 3)
-    perc_25 = round(np.percentile(vmafs, 25), 3)
-    perc_75 = round(np.percentile(vmafs, 75), 3)
 
     # Plot
     if res == "720p":
@@ -44,8 +42,8 @@ def plot_vmaf(vmafs, fps, low, res, custom, dpi):
         "axes.facecolor":    (0.0, 0.0, 0.0, 0.0),
         "savefig.facecolor": (0.0, 0.0, 0.0, 0.0),
         "legend.facecolor": (0.0, 0.0, 0.0, 0.0),
-        "legend.edgecolor": 0.0,
-        "legend.frameon": True,
+        "legend.edgecolor": "black",
+        "legend.frameon": False,
         "savefig.transparent": True,
         "animation.codec": "qtrle",
         "font.size": 26,
@@ -53,10 +51,10 @@ def plot_vmaf(vmafs, fps, low, res, custom, dpi):
 
     [plt.axhline(i, color="grey", linewidth=0.4) for i in range(0, 100)]
     [plt.axhline(i, color="black", linewidth=0.6) for i in range(0, 100, 5)]
-    plt.plot(x, vmafs, label=f"Frames: {len(vmafs)} \nMean:{mean}\nMedian:{median}\n" f"0.01%: {perc_001} \n0.1%: {perc_01} \n1%: {perc_1} \n25%: {perc_25} \n75%: {perc_75}", linewidth=0.7)
+    plt.plot(x, vmafs, label=f"Frames: {len(vmafs)} \nMean:{mean}\nMedian:{median}\n" f"0.01%: {perc_001} \n0.1%: {perc_01} \n1%: {perc_1}", linewidth=0.7)
     plt.ylabel("VMAF")
     plt.legend(loc="upper center", bbox_to_anchor=(0.5, -0.05), fancybox=True, shadow=False)
-    plt.locator_params(axis="y", nbins=5)
+    plt.locator_params(axis="y", tight=True, nbins=5)
 
     lower_limit = 0
     if low == "default":
