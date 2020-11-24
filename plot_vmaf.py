@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 
 import argparse as argp
-import math
-import matplotlib.pyplot as plt
-from matplotlib import animation
-import numpy as np
 import os
 import statistics
 import sys
 import time
+
+from matplotlib import pyplot as plt
+from matplotlib import animation
+import numpy as np
 
 
 def anim_progress(cur_frame, total_frames):
@@ -37,9 +37,9 @@ def plot_vmaf(vmafs, fps, low, res, custom, dpi):
         plt.figure(figsize=(38.4, 21.6), dpi=800)
 
     plt.rcParams.update({
-        "figure.facecolor":  (0.0, 0.0, 0.0, 0.0),
-        "figure.edgecolor":  "black",
-        "axes.facecolor":    (0.0, 0.0, 0.0, 0.0),
+        "figure.facecolor": (0.0, 0.0, 0.0, 0.0),
+        "figure.edgecolor": "black",
+        "axes.facecolor": (0.0, 0.0, 0.0, 0.0),
         "savefig.facecolor": (0.0, 0.0, 0.0, 0.0),
         "legend.facecolor": (0.0, 0.0, 0.0, 0.0),
         "legend.edgecolor": "black",
@@ -47,7 +47,7 @@ def plot_vmaf(vmafs, fps, low, res, custom, dpi):
         "savefig.transparent": True,
         "animation.codec": "qtrle",
         "font.size": 26,
-        })
+    })
 
     [plt.axhline(i, color="grey", linewidth=0.4) for i in range(0, 100)]
     [plt.axhline(i, color="black", linewidth=0.6) for i in range(0, 100, 5)]
