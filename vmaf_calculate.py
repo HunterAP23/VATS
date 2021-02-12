@@ -29,7 +29,7 @@ def multi_vmaf(i, sema):
 
 
 def parse_arguments():
-    main_help = "Multithreaded VMAF report file generator.\n"
+    main_help = "Multithreaded VMAF report file generator through FFmpeg.\n"
     parser = argp.ArgumentParser(description=main_help, formatter_class=argp.RawTextHelpFormatter)
     parser.add_argument("VMAF_FILE", type=str, help="VMAF report file.")
 

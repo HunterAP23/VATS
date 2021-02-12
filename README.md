@@ -1,8 +1,16 @@
-# Plot_Vmaf
+# VMAF-Over-Time
 This script is a combination of forking
 [master-of-zen/Plot_Vmaf](https://github.com/master-of-zen/Plot_Vmaf) and
 combining it with the live motion graphing from my own repository
 [HunterAP23/GameBench_Graph_Maker](https://github.com/HunterAP23/GameBench_Graph_Maker).
+
+There are two parts to this project:
+1. Calculating VMAF through the use of the FFmpeg program with the ability to run
+multiple instances at once to max out the speed of the calculations. VMAF scales
+with threads up to a certain point, and this part of the script can help
+
+# Plot_Vmaf
+
 
 This will generate a single image to show the VMAF values for the inputted VMAF
 file overall, and generate a video file that is animated to move through the
