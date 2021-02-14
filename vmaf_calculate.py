@@ -43,8 +43,8 @@ if __name__ == "__main__":
     rlock = manager.RLock()
     lis = manager.list()
 
-    files_list
+    files_list = []
 
-    for root, directories, filenames in os.walk(os.getcwd()):
+    for root, directories, filenames in os.walk():
 
     run_in_parallel(boring_task, threads, lis, sema, rlock)

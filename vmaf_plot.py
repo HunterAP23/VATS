@@ -161,9 +161,9 @@ def parse_arguments():
     dpi_help += "This setting applies only to the video file, not the image file."
     parser.add_argument("-d", "--dpi", dest="dpi", type=float, default="100", help=dpi_help)
 
-    # vmaf_version_help = "Choose which VMAF version was used when generating the report file (Default is 2).\n"
-    # vmaf_version_help += "Note that when using version 2, an FPS value should be specified for the video, the default FPS is 60."
-    # parser.add_argument("-v", "--version", dest="version", type=int, default="2", choices=["1", "2"], help=vmaf_version_help)
+    vmaf_version_help = "Choose which VMAF version was used when generating the report file (Default is autodetect).\n"
+    vmaf_version_help += "Note that the VMAF version can not be autodetected when using CSV files, so if you're using a CSV VMAF v1 report please specify this option as \"1\".\n"
+    parser.add_argument("-v", "--version", dest="version", type=int, default="2", choices=["1", "2"], help=vmaf_version_help)
 
     fps_help = "Specify the FPS for the video file (Default is 60).\n"
     fps_help += "Note that for VMAF version 2 (which is the default) this value should be specified manually, otherwise the default value of 60fps will be used."
