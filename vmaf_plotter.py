@@ -137,41 +137,45 @@ def parse_arguments():
     main_help += "All of the following arguments have default values within the config file.\n"
     main_help += "Arguments will override the values for the variables set in the config file when sepcified.\n"
     main_help += "Settings that are not specified in the config file will use default values as deemed by the program."
-    parser = argp.ArgumentParser(description=main_help, formatter_class=argp.RawTextHelpFormatter)
+    parser = argp.ArgumentParser(description=main_help, formatter_class=argp.RawTextHelpFormatter, add_help=False)
     parser.add_argument("VMAF_FILE", type=str, help="VMAF report file.")
 
+    optional_args = parser.add_argument_group("Optional arguments")
     o_help = "Output filename (Default: vmaf.png).\nAlso defines the name of the output graph (Default: vmaf.mov).\n"
-    o_help += "Specifying a path will save the output image and video to that location.\n
+    o_help += "Specifying a path will save the output image and video to that location.\n"
     o_help += "If no path is given, then the files are saved to this project folder."
-    parser.add_argument("-o", "--output", dest="output", type=str, default="vmaf.png", help=o_help)
+    optional_args.add_argument("-o", "--output", dest="output", type=str, default="vmaf.png", help=o_help)
 
     l_help = "Choose what the lowest value of the graph will be.\n"
     l_help += "- \"default\" uses the lowest VMAF value minus 5 as the lowest point of the y-axis so the values aren't so stretched vertically.\n"
     l_help += "- \"min\" will use whatever the lowest VMAF value is as the lowest point of the y-axis. May make the data look a bit stretched vertically.\n"
     l_help += "- \"zero\" will explicitly use 0 as the lowest point on the y-axis. May make the data look a bit compressed vertically.\n"
     l_help += "- \"custom\" will use the value entered by the user in the \"-c\" / \"--custom\" option."
-    parser.add_argument("-l", "--lower-boundary", dest="low", type=str, default="default", choices=["default", "min", "zero", "custom"], help=l_help)
+    optional_args.add_argument("-l", "--lower-boundary", dest="low", type=str, default="default", choices=["default", "min", "zero", "custom"], help=l_help)
 
     custom_help = "Enter custom minimum point for y-axis. Requires \"-l\" / \"--lower-boundary\" set to \"custom\" to work.\nThis option expects an integer value."
-    parser.add_argument("-c", "--custom", dest="custom", type=int, help=custom_help)
+    optional_args.add_argument("-c", "--custom", dest="custom", type=int, help=custom_help)
 
     res_help = "Choose the resolution for the graph video (Default is 1080).\n"
     res_help += "Note that higher values will mean drastically larger files and take substantially longer to encode."
-    parser.add_argument("-r", "--resolution", dest="res", type=str, default="1080", choices=["720", "1080", "1440", "4k"], help=res_help)
+    optional_args.add_argument("-r", "--resolution", dest="res", type=str, default="1080", choices=["720", "1080", "1440", "4k"], help=res_help)
 
     dpi_help = "Choose the DPI for the graph image and video (Default is 100).\n"
     dpi_help += "Note that higher values will mean drastically larger files and take substantially longer to encode.\n"
     dpi_help += "This setting applies only to the video file, not the image file."
-    parser.add_argument("-d", "--dpi", dest="dpi", type=float, default="100", help=dpi_help)
+    optional_args.add_argument("-d", "--dpi", dest="dpi", type=float, default="100", help=dpi_help)
 
     vmaf_version_help = "Choose which VMAF version was used when generating the report file (Default is autodetect).\n"
     vmaf_version_help += "Note that the VMAF version can not be autodetected when using CSV files, so if you're using a CSV VMAF v1 report please specify this option as \"1\".\n"
     vmaf_version_help += "Also note that when using version 2, an FPS value should be specified for the video, the default FPS is 60.\n"
-    parser.add_argument("-v", "--version", dest="version", type=int, default="2", choices=["1", "2"], help=vmaf_version_help)
+    optional_args.add_argument("-v", "--version", dest="version", type=int, default="2", choices=["1", "2"], help=vmaf_version_help)
 
     fps_help = "Specify the FPS for the video file (Default is 60).\n"
     fps_help += "Note that for VMAF version 2 (which is the default) this value should be specified manually, otherwise the default value of 60fps will be used."
-    parser.add_argument("-f", "--fps", dest="fps", type=float, help=fps_help)
+    optional_args.add_argument("-f", "--fps", dest="fps", type=float, help=fps_help)
+
+    misc_args = parser.add_argument_group("Miscellaneous arguments")
+    misc_args.add_argument("-h", "--help", action="help", default=argp.SUPPRESS, help="Show this help message and exit.\n")
 
     args = parser.parse_args()
 
@@ -180,7 +184,6 @@ def parse_arguments():
     # elif not args.fps:
     #     if int(args.version) == 2:
     #         parser.error("WANRING: User did not specify an FPS value when using VMAF version 2. The default FPS value of 60 will be used when generating the video file.")
-
 
     if args.low == "custom":
         try:

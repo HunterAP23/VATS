@@ -6,7 +6,7 @@ import xml.etree.ElementTree as xml
 
 
 class File_Reader:
-    def __init__(self, file):
+    def __init__(self, file=None):
         try:
             filename = ""
             if file:
@@ -35,6 +35,48 @@ class File_Reader:
             print(e)
             exit(1)
 
+    def validate_config_file(self, file):
+        """Validate the config file."""
+
+        config = None
+        try:
+            tmp_config = None
+            # USe user-specified path
+            if self.args.config:
+                tmp_config = self.args.config
+            # Otherwise user default config path
+            else:
+                tmp_config = os.path.join(__file__, "config.ini")
+
+            # Check if path given actually exists
+            if os.path.exists(tmp_config):
+                # Check if path is a file or a directory
+                if os.path.isfile(tmp_config):
+                    config = tmp_config
+                elif os.path.isdir(tmp_config):
+                    # If user gave a directory instead of a config file,
+                    # check if default config file exists in that directory
+                    if os.path.join(tmp_config, "config.ini"):
+                        config = os.path.join(tmp_config, "config.ini")
+                    # Otherwise throw an exception
+                    else:
+                        raise OSError("Could not find config file in directory {0} - generating a default one.".format(tmp_config))
+            else:
+                raise OSError("The specified config file {0} does not exist - generating a default one.".format(tmp_config))
+        except OSError as ose:
+            print(ose)
+
+        # Check if user gave a config file
+
+            config = config_check()
+        else:
+            config = config_check(os.path.join(__file__, "config.ini"))
+
+        if config is None:
+            return self.generate_default_config()
+        else:
+            return config
+
     def read_file(self):
         if self.ext == "unspecified":
             with open(self.file, "r") as fil:
@@ -57,16 +99,19 @@ class File_Reader:
         elif self.ext == "ini":
             return self.read_config()
 
+    def generate_default_config(self):
+        default_config = confp.ConfigParser()
+
     def read_config(self):
-        config = confp.ConfigParser()
-        config.read(self.file)
+        self.config = confp.ConfigParser()
+        self.config.read(self.file)
 
         self.config_data = dict()
         self.config_data["General"] = dict()
-        if "General" in config.sections():
-            self.config_data["General"]["ffmpeg_location"] = config["General"].get("ffmpeg_location", "ffmpeg")
-            self.config_data["General"]["threads"] = int(config["General"].getint("threads", 0))
-            self.config_data["General"]["instances"] = int(config["General"].getint("instances", 1))
+        if "General" in self.config.sections():
+            self.config_data["General"]["ffmpeg_location"] = self.config["General"].get("ffmpeg_location", "ffmpeg")
+            self.config_data["General"]["threads"] = int(self.config["General"].getint("threads", 0))
+            self.config_data["General"]["instances"] = int(self.config["General"].getint("instances", 1))
         else:
             self.config_data["General"]["ffmpeg_location"] = "ffmpeg"
             self.config_data["General"]["threads"] = 0
@@ -74,10 +119,10 @@ class File_Reader:
 
         self.config_data["Image Settings"] = dict()
         if "Image Settings" in config.sections():
-            self.config_data["Image Settings"]["x"] = float(config["Image Settings"].getfloat("x", 1920))
-            self.config_data["Image Settings"]["y"] = float(config["Image Settings"].getfloat("y", 1080))
-            self.config_data["Image Settings"]["dpi"] = float(config["Image Settings"].getfloat("dpi", 100))
-            self.config_data["Image Settings"]["format"] = config["Image Settings"].get("dpi", "svg"))
+            self.config_data["Image Settings"]["x"] = float(self.config["Image Settings"].getfloat("x", 1920))
+            self.config_data["Image Settings"]["y"] = float(self.config["Image Settings"].getfloat("y", 1080))
+            self.config_data["Image Settings"]["dpi"] = float(self.config["Image Settings"].getfloat("dpi", 100))
+            self.config_data["Image Settings"]["format"] = self.config["Image Settings"].get("dpi", "svg")
         else:
             self.config_data["Image Settings"]["x"] = 1920.0
             self.config_data["Image Settings"]["y"] = 1080.0
@@ -86,18 +131,16 @@ class File_Reader:
 
         self.config_data["Video Settings"] = dict()
         if "Video Settings" in config.sections():
-            self.config_data["Video Settings"]["x"] = float(config["Video Settings"].getfloat("x", "1920"))
-            self.config_data["Video Settings"]["y"] = float(config["Video Settings"].getfloat("y", "1080"))
-            self.config_data["Video Settings"]["dpi"] = float(config["Video Settings"].getfloat("dpi", "100"))
-            self.config_data["Video Settings"]["framerate"] = float(config["Video Settings"].getfloat("framerate", "60"))
+            self.config_data["Video Settings"]["x"] = float(self.config["Video Settings"].getfloat("x", "1920"))
+            self.config_data["Video Settings"]["y"] = float(self.config["Video Settings"].getfloat("y", "1080"))
+            self.config_data["Video Settings"]["dpi"] = float(self.config["Video Settings"].getfloat("dpi", "100"))
+            self.config_data["Video Settings"]["framerate"] = float(self.config["Video Settings"].getfloat("framerate", "60"))
         else:
             self.config_data["Video Settings"]["x"] = 1920.0
             self.config_data["Video Settings"]["y"] = 1080.0
             self.config_data["Video Settings"]["dpi"] = 100.0
             self.config_data["Video Settings"]["framerate"] = 60.0
 
-
-    def get_config(self):
         return self.config_data
 
 
