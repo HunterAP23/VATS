@@ -134,6 +134,9 @@ def main(args):
 
 def parse_arguments():
     main_help = "Plot VMAF to graph, save it as both a static image and as a transparent animated video file.\n"
+    main_help += "All of the following arguments have default values within the config file.\n"
+    main_help += "Arguments will override the values for the variables set in the config file when sepcified.\n"
+    main_help += "Settings that are not specified in the config file will use default values as deemed by the program."
     parser = argp.ArgumentParser(description=main_help, formatter_class=argp.RawTextHelpFormatter)
     parser.add_argument("VMAF_FILE", type=str, help="VMAF report file.")
 
@@ -163,6 +166,7 @@ def parse_arguments():
 
     vmaf_version_help = "Choose which VMAF version was used when generating the report file (Default is autodetect).\n"
     vmaf_version_help += "Note that the VMAF version can not be autodetected when using CSV files, so if you're using a CSV VMAF v1 report please specify this option as \"1\".\n"
+    vmaf_version_help += "Also note that when using version 2, an FPS value should be specified for the video, the default FPS is 60.\n"
     parser.add_argument("-v", "--version", dest="version", type=int, default="2", choices=["1", "2"], help=vmaf_version_help)
 
     fps_help = "Specify the FPS for the video file (Default is 60).\n"

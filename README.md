@@ -8,15 +8,17 @@ There are two parts to this project:
 1. Calculating VMAF through the use of the FFmpeg program with the ability to run
 multiple instances at once to max out the speed of the calculations. VMAF scales
 with threads up to a certain point, and this part of the script can help
+2. Generate image and video graphs of the different VMAF related metrics. The
+metrics include PSNR, SSIM, SSIM, and others that VMAF normally generates. The
+video file is a live playback of the values to be used in situations like
+benchmark videos.
 
 # Plot_Vmaf
-
-
 This will generate a single image to show the VMAF values for the inputted VMAF
 file overall, and generate a video file that is animated to move through the
 graph, both at the same framerate (as reported by the source VMAF report) and
 has a transparent background.
-![](plot.svg)
+![](graph_examples/plot_720p_default.svg)
 
 ## Usage
 ```bash
@@ -51,9 +53,6 @@ optional arguments:
   -r {720p,1080p,1440p,4k}, --resolution {720p,1080p,1440p,4k}
                         Choose the resolution for the graph video (Default is 1080p).
                         Note that higher values will mean drastically larger files and take substantially longer to encode.
-  -d DPI, --dpi DPI     Choose the DPI for the graph image and video (Default is 100).
-                        Note that higher values will mean drastically larger files and take substantially longer to encode.
-                        This setting applies only to the video file, not the image file.
 ```
 
 ## Requirements
