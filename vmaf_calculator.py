@@ -5,16 +5,86 @@ import shlex
 import subprocess as sp
 import time
 
-from file_reader import File_Reader
+import ffmpy
+import numpy as np
+
+from config_reader import Config_Reader
 
 
 class VMAF_Calculator:
-    """Calculates VMAF  and other visual score metric values using FFmpeg with multithreading and multiprocessing."""
+    """Calculates VMAF and other visual score metric values using FFmpeg with multithreading and multiprocessing."""
     def __init__(self):
         # Parse arguments given by the user, if any
         self.args = self.parse_arguments()
-        # Create a File_Reader object with the config file.
-        self.config = File_Reader(self.args.config)
+
+        # Create a Config_Reader object with the config file.
+        conf_reader = Config_Reader(self.args)
+        self.config = conf_reader.get_config_data()
+
+        # if self.args.threads:
+        #     self.threads = self.args.threads
+        # else:
+        #     try:
+        #         self.threads = self.config["Calculations"]["threads"]
+        #     except KeyError as ke:
+        #         print(ke)
+        #         self.threads = mp.cpu_count()
+
+        # if self.args.instances:
+        #     self.instances = self.args.instances
+        # else:
+        #     try:
+        #         self.instances = self.config["Calculations"]["instances"]
+        #     except KeyError as ke:
+        #         print(ke)
+        #         self.instances = 1
+
+        self.validate_processes()
+
+        if self.args.vmaf_version:
+            self.instances = self.args.instances
+        else:
+            self.instances = self.config["Calculations"]["instances"]
+
+        if self.args.psnr:
+            self.psnr = self.args.psnr
+        else:
+            self.psnr = self.config["Calculations"]["psnr"]
+
+        if self.args.ssim:
+            self.ssim = self.args.ssim
+        else:
+            self.ssim = self.config["Calculations"]["ssim"]
+
+        if self.args.ms_ssim:
+            self.ms_ssim = self.args.ms_ssim
+        else:
+            self.ms_ssim = self.config["Calculations"]["ms_ssim"]
+
+        if self.args.model:
+            self.model = self.args.model
+        else:
+            self.model = self.config["Calculations"]["model"]
+
+        if self.args.log:
+            self.log = self.args.log
+        else:
+            self.log = self.config["Calculations"]["log_format"]
+
+        for k, v in dict(vars(self)).items():
+            if k == "args" or k == "config":
+                print(type(v))
+                if type(v) == dict:
+                    for arg, val in v.items():
+                        print("{0}.{1}: {2}".format(k, arg, val))
+                else:
+                    for arg, val in dict(vars(v)).items():
+                        print("{0}.{1}: {2}".format(k, arg, val))
+            else:
+                print("{0}: {1}".format(k ,v))
+
+    def print_dict(self, vari):
+        
 
     def parse_arguments(self):
         """Parse user given arguments for calculating VMAF."""
@@ -28,16 +98,19 @@ class VMAF_Calculator:
         optional_args = parser.add_argument_group("Optional arguments")
         ffmpeg_help = "Specify the path to the FFmpeg executable (Default is \"ffmpeg\" which assumes that FFmpeg is part of your \"Path\" environment variable).\n"
         ffmpeg_help += "The path must either point to the executable itself, or to the directory that contains the exectuable named \"ffmpeg\"."
-        optional_args.add_argument("-f", "--ffmpeg", dest="ffmpeg", default="ffmpeg", help=ffmpeg_help)
+        optional_args.add_argument("-f", "--ffmpeg", dest="ffmpeg", help=ffmpeg_help)
 
         threads_help = "Specify number of threads (Default is 0 for \"autodetect\").\n"
         threads_help += "Specifying more threads than there are available will clamp the value down to the maximum number of threads on the system.\n"
         threads_help += "A single VMAF instance will effectively max out at 12 threads - any more will provide little to no performance increase."
-        optional_args.add_argument("-t", "--threads", dest="threads", type=int, default="0", help=threads_help)
+        optional_args.add_argument("-t", "--threads", dest="threads", type=int, help=threads_help)
 
         inst_help = "Specify number of simultaneous VMAF calculation instances to run (Default is 1).\n"
         inst_help += "Specifying more instances than there are available will clamp the value down to the maximum number of threads on the system for a total of 1 thread per process.\n"
-        optional_args.add_argument("-i", "--instances", dest="instances", type=int, default="1", help=inst_help)
+        optional_args.add_argument("-i", "--instances", dest="instances", type=int, help=inst_help)
+
+        vmaf_version_help = "Specify the VMAF version to use (Default is 2).\n"
+        optional_args.add_argument("-v", "--vmaf_version", dest="vmaf_version", type=int, choices=[1, 2], help=vmaf_version_help)
 
         psnr_help = "Enable calculating PSNR values (Default is off).\n"
         optional_args.add_argument("-p", "--psnr", dest="psnr", action="store_true", help=psnr_help)
@@ -50,52 +123,46 @@ class VMAF_Calculator:
 
         model_help = "Specify the VMAF model file to use (Default is \"vmaf_v0.6.1.pkl\" for VMAF version 1 and \"vmaf_v0.6.1.json\" for VMAF version 2).\n"
         model_help += "By default, this variable assumes the model file is located in the same location as this script."
-        optional_args.add_argument("-m", "--model", dest="model", default=os.path.join(__file__, "vmaf_v0.6.1"), help=model_help)
+        optional_args.add_argument("-m", "--model", dest="model", help=model_help)
 
         log_help = "Specify the VMAF output log format (Default is \"xml\").\n"
-        optional_args.add_argument("-l", "--log", dest="log", default="xml", choices=["xml", "csv", "json"], help=log_help)
+        optional_args.add_argument("-l", "--log", dest="log", choices=["xml", "csv", "json"], help=log_help)
 
         config_help = "Specify a config file to import multiple settings with (Default is \"config.ini\" in the same folder as the script).\n"
         config_help += "Values specified with the arguments above will override the settings in the config file."
-        optional_args.add_argument("-c", "--config", dest="config", default=os.path.join(__file__, "config.ini"), help=config_help)
+        optional_args.add_argument("-c", "--config", dest="config", help=config_help)
 
         misc_args = parser.add_argument_group("Miscellaneous arguments")
         misc_args.add_argument("-h", "--help", action="help", default=argp.SUPPRESS, help="Show this help message and exit.\n")
 
         args = parser.parse_args()
-        args.Threads = self.validate_threads(args.Threads, config)
-        config = self.validate_file(self.args.config)
-        return self.args
+        return args
 
-    def validate_threads(self, threads: int, config: str):
-        """Validate that the number of threads specifieid by either the user or config file is not more than the number of threads available on the system."""
-        if threads:
-            if threads > mp.cpu_count():
-                msg = "ERROR: User specified {0} threads which is more than the number the system supports ({1}), clamping the value to the available number of threads on this system."
-                print(msg.format(threads, mp.cpu_count()))
-                threads = mp.cpu_count()
-        else:
-            if "General" not in config:
-                print("ERROR: \"global\" key does not exist in the configuration file. Manually asking user for input...")
-                threads = mp.cpu_count()
-            else:
-                if "threads" not in config["global"]:
-                    print("ERROR: \"threads\" key does not exist in the \"global\" section of the configuration file. Goign with default value of all threads ({})".format(mp.cpu_count()))
-                    threads = mp.cpu_count()
-                else:
-                    try:
-                        threads_int = int(config["global"]["threads"])
-                        if threads_int > mp.cpu_count():
-                            msg = "ERROR: Configuration file specified {0} threads which is more than the number the system supports ({1}), clamping the value to the available number of threads on this system."
-                            print(msg.format(threads, mp.cpu_count()))
-                            threads = mp.cpu_count()
-                        else:
-                            threads = threads_int
-                    except ValueError:
-                        print("ERROR: Value ({0}) for \"threads\" key is not an integer. Defaulting to all CPU threads ({1}).".format(config["global"]["threads"], mp.cpu_count()))
-                        threads = mp.cpu_count()
+    def validate_threads(self):
+        """Validate that the number of threads specified by either the user or config file is not more than the number of threads available on the system."""
+        try:
+            try:
+                if self.config["Calculations"]["threads"] > mp.cpu_count():
+                    raise ValueError("ERROR: User specified {0} threads which is more than the number the system supports ({2}), clamping the value to the available number of threads on this system.".format(self.args.threads, mp.cpu_count()))
+                    self.args.threads = mp.cpu_count()
 
-        return threads
+            except KeyError as ke:
+                print(ke)
+                self.args.threads = mp.cpu_count()
+        except Keyerror as ke:
+            print(ke)
+            self.threads = 0
+
+    def validate_instances(self):
+        try:
+            if self.config["Calculations"]["instances"] is not none:
+                return
+        except Keyerror as ke:
+            print(ke)
+            self.instances = 1
+
+    def validate_processes(self):
+        return
 
     def time_function(self, func, i: int, sema, rlock):
         sema.acquire()
@@ -105,7 +172,7 @@ class VMAF_Calculator:
     def run_in_parallel(self, fn, threads: int, lis: list, sema, rlock):
         proc = []
         for i in lis:
-            p = mp.Process(target=time_function, args=(fn, i, sema, rlock))
+            p = mp.Process(target=self.time_function, args=(fn, i, sema, rlock))
             proc.append(p)
 
         for p in proc:
@@ -115,11 +182,12 @@ class VMAF_Calculator:
             try:
                 p.join()
             except Exception as e:
-                print("EXCEPTION: {}".format(e))
+                print(e)
 
     def multi_vmaf(self, i, sema):
         command = "ffmpeg -i {0}"
         sp.Popen(command, stdout=sp.PIPE, stderr=sp.PIPE)
+
 
 if __name__ == "__main__":
     calculator = VMAF_Calculator()
