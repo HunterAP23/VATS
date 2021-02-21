@@ -8,7 +8,7 @@ import time
 import ffmpy
 import numpy as np
 
-from config_reader import Config_Reader
+from config_handler import Config_Handler
 
 
 class VMAF_Calculator:
@@ -73,18 +73,24 @@ class VMAF_Calculator:
 
         for k, v in dict(vars(self)).items():
             if k == "args" or k == "config":
-                print(type(v))
-                if type(v) == dict:
-                    for arg, val in v.items():
-                        print("{0}.{1}: {2}".format(k, arg, val))
-                else:
-                    for arg, val in dict(vars(v)).items():
-                        print("{0}.{1}: {2}".format(k, arg, val))
+
+                self.print_dict(v)
             else:
                 print("{0}: {1}".format(k ,v))
 
-    def print_dict(self, vari):
-        
+    def print_dict(self, key, val):
+        print(key)
+        for k, v in val.items():
+            if type(v) == dict:
+                print(k)
+                self.print_dict(v)
+            elif type(v) == list:
+                print(k)
+                for i in v:
+                    print(i)
+            else:
+                print("{0}: {1}".format(k, v))
+
 
     def parse_arguments(self):
         """Parse user given arguments for calculating VMAF."""

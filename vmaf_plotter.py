@@ -10,6 +10,9 @@ from matplotlib import pyplot as plt
 from matplotlib import animation
 import numpy as np
 
+from config_handler import Config_Handler
+from report_handler import Report_Handler
+
 
 def anim_progress(cur_frame, total_frames):
     percent = "{0:.2f}".format(cur_frame * 100 / total_frames).zfill(5)

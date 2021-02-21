@@ -2,8 +2,9 @@ import configparser as confp
 import multiprocessing as mp
 import os
 
+from file_handler import File_Handler
 
-class Config_Reader:
+class Config_Handler(File_Handler):
     def __init__(self, args):
         try:
             filename = ""
@@ -71,7 +72,7 @@ class Config_Reader:
         config_dict = {
             "General": {
                 "vmaf_version": 2
-            }
+            },
             "Calculations": {
                 "ffmpeg_location": "ffmpeg",
                 "threads": mp.cpu_count(),
@@ -87,7 +88,7 @@ class Config_Reader:
                 "output": "vmaf",
                 "lower_boundary": "default",
                 "custom": 0
-            }
+            },
             "Image Settings": {
                 "x": 1920.0,
                 "y": 1080.0,
