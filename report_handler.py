@@ -5,7 +5,7 @@ import xml.etree.ElementTree as xml
 
 from file_handler import File_Handler
 
-class File_Handler(File_Handler):
+class Report_Handler(File_Handler):
     def __init__(self, file=None, config=False):
         try:
             filename = ""

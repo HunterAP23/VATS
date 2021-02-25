@@ -18,33 +18,15 @@ class VMAF_Calculator:
         self.args = self.parse_arguments()
 
         # Create a Config_Reader object with the config file.
-        conf_reader = Config_Reader(self.args)
+        conf_reader = Config_Handler(self.args)
         self.config = conf_reader.get_config_data()
 
-        # if self.args.threads:
-        #     self.threads = self.args.threads
-        # else:
-        #     try:
-        #         self.threads = self.config["Calculations"]["threads"]
-        #     except KeyError as ke:
-        #         print(ke)
-        #         self.threads = mp.cpu_count()
-
-        # if self.args.instances:
-        #     self.instances = self.args.instances
-        # else:
-        #     try:
-        #         self.instances = self.config["Calculations"]["instances"]
-        #     except KeyError as ke:
-        #         print(ke)
-        #         self.instances = 1
-
-        self.validate_processes()
+        self.validate_options()
 
         if self.args.vmaf_version:
-            self.instances = self.args.instances
+            self.vmaf_version = self.args.vmaf_version
         else:
-            self.instances = self.config["Calculations"]["instances"]
+            self.vmaf_version = self.config["Calculations"]["vmaf_version"]
 
         if self.args.psnr:
             self.psnr = self.args.psnr
@@ -76,7 +58,7 @@ class VMAF_Calculator:
 
                 self.print_dict(v)
             else:
-                print("{0}: {1}".format(k ,v))
+                print("{0}: {1}".format(k, v))
 
     def print_dict(self, key, val):
         print(key)
@@ -90,6 +72,45 @@ class VMAF_Calculator:
                     print(i)
             else:
                 print("{0}: {1}".format(k, v))
+
+    def validate_options(self):
+        """Validate all user specified, config-specified, and remaining default options."""
+        def validate_threads(self):
+            if len(os.sched_getaffinity(0)) != mp.cpu_count()
+            try:
+                if self.args.threads:
+                    if self.args.threads > mp.cpu_count():
+                        raise ValueError
+
+            try:
+                try:
+                    if self.config["Calculations"]["threads"] > mp.cpu_count():
+                        raise ValueError("ERROR: User specified {0} threads which is more than the number the system supports ({1}), clamping the value to the available number of threads on this system.".format(self.args.threads, mp.cpu_count()))
+                        self.args.threads = mp.cpu_count()
+
+                except KeyError as ke:
+                    print(ke)
+                    self.args.threads = mp.cpu_count()
+            except KeyError as ke:
+                print(ke)
+                self.threads = 0
+
+        def validate_instances(self):
+            try:
+                if self.config["Calculations"]["instances"] is not None:
+                    return
+            except KeyError as ke:
+                print(ke)
+                self.instances = 1
+
+        def validate_processes(self):
+            return
+
+        self.validate_threads()
+
+        self.validate_instances()
+
+        self.validate_processes()
 
 
     def parse_arguments(self):
@@ -143,32 +164,6 @@ class VMAF_Calculator:
 
         args = parser.parse_args()
         return args
-
-    def validate_threads(self):
-        """Validate that the number of threads specified by either the user or config file is not more than the number of threads available on the system."""
-        try:
-            try:
-                if self.config["Calculations"]["threads"] > mp.cpu_count():
-                    raise ValueError("ERROR: User specified {0} threads which is more than the number the system supports ({2}), clamping the value to the available number of threads on this system.".format(self.args.threads, mp.cpu_count()))
-                    self.args.threads = mp.cpu_count()
-
-            except KeyError as ke:
-                print(ke)
-                self.args.threads = mp.cpu_count()
-        except Keyerror as ke:
-            print(ke)
-            self.threads = 0
-
-    def validate_instances(self):
-        try:
-            if self.config["Calculations"]["instances"] is not none:
-                return
-        except Keyerror as ke:
-            print(ke)
-            self.instances = 1
-
-    def validate_processes(self):
-        return
 
     def time_function(self, func, i: int, sema, rlock):
         sema.acquire()
