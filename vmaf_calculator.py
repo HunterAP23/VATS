@@ -76,11 +76,14 @@ class VMAF_Calculator:
     def validate_options(self):
         """Validate all user specified, config-specified, and remaining default options."""
         def validate_threads(self):
-            if len(os.sched_getaffinity(0)) != mp.cpu_count()
+            # if len(os.sched_getaffinity(0)) != mp.cpu_count():
             try:
                 if self.args.threads:
                     if self.args.threads > mp.cpu_count():
                         raise ValueError
+            except ValueError as ve:
+                print(ve)
+                self.args.threads = mp.cpu_count()
 
             try:
                 try:
