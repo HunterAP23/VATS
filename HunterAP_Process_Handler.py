@@ -4,7 +4,6 @@ import subprocess as sp
 
 # Scheduling related
 import sched
-import queue as que
 import time
 
 
@@ -14,15 +13,19 @@ import platform as plat
 import sys
 
 # Debugging related
-import errno, inspect, traceback
+import errno
+import inspect
+import traceback
 
+# Miscellaneous
+from typing import AnyStr, Dict, List, Optional, Set, Tuple
 
-class HunterAP_Process_Scheduler_Error(Exception):
+class HunterAP_Process_Handler_Error(Exception):
     pass
 
 
-class HunterAP_Process_Scheduler:
-    def __init__(self, max_procs=None, max_threads=None):
+class HunterAP_Handler_Handler:
+    def __init__(self, max_procs: Optional[int], max_threads: Optional[int], funcs: Optional[Dict]):
         self.pid = os.getpid()
         self.core_count = mp.cpu_count()
         self.usable_cores_count = None
@@ -46,6 +49,7 @@ class HunterAP_Process_Scheduler:
         self.platform_version = ret[3]
         self.platform_machine = ret[4]
         self.platform_cpu = ret[5]
+        del ret
 
         if self.sys_platform != "Windows":
             self.usable_cores = os.sched_getaffinity(0)
@@ -92,38 +96,8 @@ class HunterAP_Process_Scheduler:
             elif max_procs < self.usable_cores_count:
                 self.pool_proc = mp.Pool(max_procs)
 
-    def get_affinity(self):
+    def get_pid(self):
         return self.pid
 
-    def yield_vars(self):
-        for key, val in sorted(vars(self).items()):
-            yield((key, val,))
-
-    def get_vars(self):
-        return sorted(vars(self).items())
-
-    def get_methods(self):
-        methods = []
-        for method_name in dir(object):
-            if callable(getattr(object, method_name)):
-                methods.append(method_name)
-        return methods
-
-    def get_dir(self):
-        return sorted(dir(tmp))
-
-if __name__ == "__main__":
-    tmp = HunterAP_Process_Scheduler()
-
-    for method in tmp.get_methods():
-        print(method)
-
-    print("\n")
-
-    for dir in tmp.get_dir():
-        print(dir)
-
-    print("\n")
-
-    for var, val in tmp.get_vars():
-        print("{0}: {1}".format(var, val))
+    def get_affinity(self):
+        return self.usable_cores
