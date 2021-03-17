@@ -5,6 +5,7 @@ import xml.etree.ElementTree as xml
 
 from file_handler import File_Handler
 
+
 class Report_Handler(File_Handler):
     def __init__(self, file=None, config=False):
         try:
@@ -38,13 +39,14 @@ class Report_Handler(File_Handler):
     def validate_file(self, filename):
         """Validate the file."""
 
-        file = None
         try:
             # Check if path given actually exists
-            if os.path.exists(filename):
+            if filename is None:
+                return False
+            elif os.path.exists(filename):
                 # Check if path is a file or a directory
                 if os.path.isfile(filename):
-                    file = filename
+                    return filename
                 else:
                     raise OSError("The specified report file {0} does not exist.".format(filename))
             else:
@@ -52,11 +54,6 @@ class Report_Handler(File_Handler):
         except OSError as ose:
             print(ose)
             exit(1)
-
-        if file is None:
-            return False
-        else:
-            return config
 
     def read_file(self):
         if self.ext == "unspecified":

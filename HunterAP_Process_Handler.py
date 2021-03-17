@@ -6,7 +6,6 @@ import subprocess as sp
 import sched
 import time
 
-
 # System related
 import os
 import platform as plat
@@ -18,14 +17,20 @@ import inspect
 import traceback
 
 # Miscellaneous
-from typing import AnyStr, Dict, List, Optional, Set, Tuple
+from typing import AnyStr
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Set
+from typing import Tuple
+
 
 class HunterAP_Process_Handler_Error(Exception):
     pass
 
 
-class HunterAP_Handler_Handler:
-    def __init__(self, max_procs: Optional[int], max_threads: Optional[int], funcs: Optional[Dict]):
+class HunterAP_Process_Handler:
+    def __init__(self, max_procs: Optional[int] = 1, max_threads: Optional[int] = 1, funcs: Optional[Dict] = {}):
         self.pid = os.getpid()
         self.core_count = mp.cpu_count()
         self.usable_cores_count = None
@@ -38,7 +43,9 @@ class HunterAP_Handler_Handler:
             self.sys_platform = "AIX"
         elif sys.platform.startswith("win32"):
             self.sys_platform = "Windows"
-            import win32api, win32con, win32process
+            import win32api
+            import win32con
+            import win32process
         elif sys.platform.startswith("darwin"):
             self.sys_platform = "MacOS"
 

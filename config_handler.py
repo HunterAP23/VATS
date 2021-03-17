@@ -1,16 +1,30 @@
 import configparser as confp
 import math
-import multiprocessing as mp
 import os
+from pathlib import Path
+# from pathlib import PurePath
+import shlex
+import subprocess as sp
+from typing import AnyStr
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Set
+from typing import Tuple
+
+import ffmpy
 
 from file_handler import File_Handler
-from HunterAP_Process_Handler import *
-from HunterAP_Common import *
+from HunterAP_Process_Handler import HunterAP_Process_Handler as proc_handler
+from HunterAP_Process_Handler import HunterAP_Process_Handler_Error
+from HunterAP_Common import print_dict
+
 
 class Config_Handler(File_Handler):
-    def __init__(self, args, program="Calculations"):
+    def __init__(self, args, program: Optional[AnyStr] = "Calculations", mp_handler: Optional[proc_handler] = None):
         self.args = args
         self.program = program
+        self.mp_handler = mp_handler
         filename = ""
         if self.args.config:
             filename = self.args.config
@@ -18,7 +32,7 @@ class Config_Handler(File_Handler):
             filename = "config.ini"
 
         # if the file exists and is a file then use it
-        File_Handler.__init__(self, file=filename, config=True)
+        File_Handler.__init__(self, file=filename, file_type="config")
         if self.file is not None:
             self.config_data = self.read_config(self.file)
         else:
@@ -26,13 +40,7 @@ class Config_Handler(File_Handler):
             self.file = "config.ini"
         self.args.config = self.file
 
-        # print_dict(dict(vars(self)))
         self.validate_options(self.file)
-
-        # for k, v in config.items():
-        #     for k2, v2 in v.items():
-        #         print("{0}: {1}".format(k2, v2))
-        # self.config = {s:dict(config.items(s)) for s in config.sections()}
 
     def get_config_data(self):
         return self.config_data
@@ -43,23 +51,23 @@ class Config_Handler(File_Handler):
                 "vmaf_version": 2
             },
             "Calculations": {
-                "ffmpeg_location": "ffmpeg",
+                "ffmpeg": "ffmpeg",
                 "psnr": False,
                 "ssim": False,
                 "ms_ssim": False,
                 "model": "vmaf_v0.6.1",
                 "log_name": "vmaf",
                 "log_format": "xml",
-                "threads": mp.cpu_count(),
-                "instances": 1,
+                "threads": self.mp_handler.core_count,
+                "processes": 1,
                 "use_remaining_threads": False
             },
             "Graphing": {
                 "output": "vmaf",
                 "lower_boundary": "default",
                 "custom": 0,
-                "threads": mp.cpu_count(),
-                "instances": 1,
+                "threads": self.mp_handler.core_count,
+                "processes": 1,
                 "use_remaining_threads": False
             },
             "Image Settings": {
@@ -126,10 +134,9 @@ class Config_Handler(File_Handler):
         if item in vars(self.args).keys():
             if item == "vmaf_version":
                 accepted_values = [i for i in range(1, 2)]
-            elif item == "threads" or item == "instances":
-                accepted_values = [i for i in range(mp.cpu_count())]
+            elif item == "threads" or item == "processes":
+                accepted_values = [i for i in range(self.mp_handler.core_count)]
             # elif :
-
 
     def validate_options(self, filename):
         """Validate all user specified, config-specified, and remaining default options."""
@@ -169,13 +176,14 @@ class Config_Handler(File_Handler):
                 return config
 
         def validate_threads(self):
+            print("Validating thread count...")
             should_print = None
             try:
                 if self.args.threads:
-                    if self.args.threads > mp.cpu_count():
+                    if self.args.threads > self.mp_handler.core_count:
                         should_print = True
                         msg = "ERROR: User specified {0} threads which is more than the number the system supports ({1}). Checking config file for specified thread count."
-                        raise HunterAP_Process_Handler_Error(msg.format(self.args.threads, mp.cpu_count()))
+                        raise HunterAP_Process_Handler_Error(msg.format(self.args.threads, self.mp_handler.core_count))
                     else:
                         self.config_data[self.program]["threads"] = self.args.threads
                 else:
@@ -185,23 +193,24 @@ class Config_Handler(File_Handler):
                 if should_print:
                     print(hap_phe)
                 try:
-                    if int(self.config_data[self.program]["threads"]) > mp.cpu_count():
-                        msg = "ERROR: Config file specified {0} threads which is more than the number the system supports ({1}). Defaulting to 1 thread."
-                        raise HunterAP_Process_Handler_Error(msg.format(self.config_data[self.program]["threads"], mp.cpu_count()))
+                    if int(self.config_data[self.program]["threads"]) > self.mp_handler.core_count:
+                        msg = "WARNING: Config file specified {0} threads which is more than the number the system supports ({1}). Defaulting to 1 thread."
+                        raise HunterAP_Process_Handler_Error(msg.format(self.config_data[self.program]["threads"], self.mp_handler.core_count))
                 except HunterAP_Process_Handler_Error as hap_phe:
                     print(hap_phe)
                     self.config_data[self.program]["threads"] = 1
 
-        def validate_instances(self):
+        def validate_processes(self):
+            print("Validating process count...")
             should_print = None
             try:
-                if self.args.instances:
-                    if self.args.instances > mp.cpu_count():
+                if self.args.processes:
+                    if self.args.processes > self.mp_handler.core_count:
                         should_print = True
-                        msg = "ERROR: User specified {0} instances which is more than the number of threads the system supports ({1}). Checking config file for specified instances count."
-                        raise HunterAP_Process_Handler_Error(msg.format(self.args.instances, mp.cpu_count()))
+                        msg = "WARNING: User specified {0} processes which is more than the number of threads the system supports ({1}). Checking config file for specified processes count."
+                        raise HunterAP_Process_Handler_Error(msg.format(self.args.processes, self.mp_handler.core_count))
                     else:
-                        self.config_data[self.program]["instances"] = self.args.instances
+                        self.config_data[self.program]["processes"] = self.args.processes
                 else:
                     should_print = False
                     raise HunterAP_Process_Handler_Error()
@@ -209,28 +218,112 @@ class Config_Handler(File_Handler):
                 if should_print:
                     print(hap_phe)
                 try:
-                    if int(self.config_data[self.program]["instances"]) > mp.cpu_count():
-                        msg = "ERROR: Config file specified {0} instances which is more than the number of threads the system supports ({1}). Defaulting to 1 instance."
-                        raise HunterAP_Process_Handler_Error(msg.format(self.config_data[self.program]["instances"], mp.cpu_count()))
+                    if int(self.config_data[self.program]["processes"]) > self.mp_handler.core_count:
+                        msg = "WARNING: Config file specified {0} processes which is more than the number of threads the system supports ({1}). Defaulting to 1 process."
+                        raise HunterAP_Process_Handler_Error(msg.format(self.config_data[self.program]["processes"], self.mp_handler.core_count))
                 except HunterAP_Process_Handler_Error as hap_phe:
                     print(hap_phe)
                     self.config_data[self.program]["threads"] = 1
 
-        def validate_processes(self):
-            total = int(self.config_data[self.program]["threads"]) * int(self.config_data[self.program]["instances"])
+        def validate_threads_processes(self):
+            print("Validating total process count...")
+            total = int(self.config_data[self.program]["threads"]) * int(self.config_data[self.program]["processes"])
             try:
-                if total > mp.cpu_count():
-                    msg = "ERROR: The number of total threads used over all {0} instances is greater than the number of threads in the system {1}. Limiting instances down to allow as many instances as possible with {2} threads per instance."
-                    raise HunterAP_Process_Handler_Error(msg.format(self.config_data[self.program]["instances"], mp.cpu_count(), self.config_data[self.program]["threads"]))
+                if total > self.mp_handler.core_count:
+                    msg = "WARNING: Can not run {0} processes with {1} threads per process as that exceeds the number of threads in the system ({2} threads). Limiting processes down to allow as many processes as possible with {1} threads per process."
+                    msg = msg.format(self.config_data[self.program]["processes"], self.config_data[self.program]["threads"], self.mp_handler.core_count)
+                    raise HunterAP_Process_Handler_Error(msg)
+                else:
+                    msg = "Running {0} processes with {1} threads per process. Continuing..."
+                    print(msg.format(self.config_data[self.program]["processes"], self.config_data[self.program]["threads"]))
             except HunterAP_Process_Handler_Error as hap_phe:
                 print(hap_phe)
-                instances = math.floor(mp.cpu_count() / int(self.config_data[self.program]["threads"]))
-                total_threads = self.config_data[self.program]["threads"] * instances
-                rem_threads = mp.cpu_count() - total_threads
-                msg = "The program will run {0} instances instead of {1}, with {2} threads per instance for a total of {3} total threads in use, with {4} threads remaining unused."
-                print(msg.format(instances, self.config_data[self.program]["instances"], self.config_data[self.program]["threads"], total_threads, rem_threads))
-                self.config_data[self.program]["instances"] = instances
+                processes = math.floor(self.mp_handler.core_count / int(self.config_data[self.program]["threads"]))
+                total_threads = self.config_data[self.program]["threads"] * processes
+                rem_threads = self.mp_handler.core_count - total_threads
+                msg = "The program will run {0} processes instead of {1}, with {2} threads per process for a total of {3} total threads in use, with {4} threads remaining unused."
+                print(msg.format(processes, self.config_data[self.program]["processes"], self.config_data[self.program]["threads"], total_threads, rem_threads))
+                self.config_data[self.program]["processes"] = processes
 
+        def validate_ffmpeg(self):
+            print("Checking FFmpeg executable...")
+
+            if self.args.ffmpeg:
+                self.config_data[self.program]["ffmpeg"] = str(Path(self.args.ffmpeg))
+
+            if " " in self.config_data[self.program]["ffmpeg"]:
+                self.config_data[self.program]["ffmpeg"] = "\"{0}\"".format(self.config_data[self.program]["ffmpeg"])
+            else:
+                self.config_data[self.program]["ffmpeg"] = "{0}".format(self.config_data[self.program]["ffmpeg"])
+
+            try:
+                ff = ffmpy.FFmpeg(
+                    executable = self.config_data[self.program]["ffmpeg"],
+                    global_options = ["-h"]
+                )
+
+                out, err = ff.run(stdout=sp.PIPE, stderr=sp.PIPE)
+
+                if self.program == "Calculations":
+                    if "--enable-libvmaf" in out.decode("utf-8"):
+                        raise OSError("FFmpeg is not built with VMAF support (\"--enable-libvmaf\"). The program can not continue and will now exit.")
+
+                print("FFmpeg executable \"{0}\" is valid and contains the libvmaf library. Continuing...".format(self.config_data[self.program]["ffmpeg"]))
+            except (OSError, ffmpy.FFExecutableNotFoundError) as exc:
+                if self.mp_handler.sys_platform == "Windows":
+                    if exc.winerror:
+                        msg = ""
+                        if exc.winerror == 5:
+                            msg = "ERROR: FFmpeg executable was not found in given path \"{0}\".\n".format(self.config_data[self.program]["ffmpeg"])
+                        elif exc.winerror == 193:
+                            msg = "ERROR: The provided file ({0}) is not a valid FFmpeg executable.\n".format(self.config_data[self.program]["ffmpeg"])
+                        msg += "FFmpeg is required for this program to run.\n"
+                        msg += "Please make sure you have FFmpeg installed correctly and that you pointing the program to the executable through either your config file or through runtime arguments."
+                        print(msg)
+                else:
+                    print(exc)
+                exit(1)
+
+        def validate_model(self):
+            model_finder = None
+            if self.args.model:
+                model_finder = File_Handler(self.args.model, file_type="model").file
+            else:
+                model_finder = File_Handler(self.config_data[self.program]["model"], file_type="model").file
+
+            if self.mp_handler.sys_platform == "Windows":
+                paths = list(Path(model_finder).parts)
+                drive = paths[0].replace("\\", "")
+                paths[0] = drive[0] + r"\\" + drive[1]
+                newfile = "/".join(paths)
+                model_finder = newfile
+
+            try:
+                if self.config_data["General"]["vmaf_version"] == 1:
+                    if not model_finder.endswith(".pkl"):
+                        model_finder += ".pkl"
+                else:
+                    if not model_finder.endswith(".json"):
+                        model_finder += ".json"
+
+                ff = ffmpy.FFmpeg(
+                    executable = self.config_data[self.program]["ffmpeg"],
+                    inputs = {
+                        "video_samples/sample1.mp4": None,
+                        "video_samples/sample2.mp4": None
+                    },
+                    outputs = {
+                        "-": "-t 1 -filter_complex \"libvmaf=model_path={0}\" -f null".format(repr(model_finder).replace("'", "\""))
+                    }
+                )
+
+                out, err = ff.run(stdout=sp.PIPE, stderr=sp.PIPE)
+
+                if "could not read model from path" in err.decode("utf-8"):
+                    raise FileNotFoundError("Could not find model file {0}.".format(model_finder))
+            except FileNotFoundError as fnfe:
+                print(fnfe)
+                exit(1)
 
         check = validate_config_file(filename)
         if check:
@@ -240,6 +333,35 @@ class Config_Handler(File_Handler):
 
         validate_threads(self)
 
-        validate_instances(self)
-
         validate_processes(self)
+
+        validate_threads_processes(self)
+
+        if self.args.vmaf_version:
+            self.config_data["General"]["vmaf_version"] = self.args.vmaf_version
+
+        if self.program == "Calculations":
+            validate_ffmpeg(self)
+
+            if self.args.psnr:
+                self.config_data[self.program]["psnr"] = self.args.psnr
+
+            if self.args.ssim:
+                self.config_data[self.program]["ssim"] = self.args.ssim
+
+            if self.args.ms_ssim:
+                self.config_data[self.program]["ms_ssim"] = self.args.ms_ssim
+
+            validate_model(self)
+
+            if self.args.log_format:
+                self.config_data[self.program]["log_name"] = self.args.log_format
+
+            if self.args.log_name:
+                self.config_data[self.program]["log_name"] = self.args.log_name
+
+        # for k, v in self.config_data.items():
+        #     if k == "args" or k == "config":
+        #         print_dict(k)
+        #     else:
+        #         print("{0}: {1}".format(k, v))
