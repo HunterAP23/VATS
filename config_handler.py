@@ -32,7 +32,7 @@ class Config_Handler(File_Handler):
             filename = "config.ini"
 
         # if the file exists and is a file then use it
-        File_Handler.__init__(self, file=filename, file_type="config")
+        File_Handler.__init__(self, file=filename, file_type="config", os_name=self.mp_handler.sys_platform)
         if self.file is not None:
             self.config_data = self.read_config(self.file)
         else:
@@ -159,14 +159,17 @@ class Config_Handler(File_Handler):
                                 config = tmp_config
                             else:
                                 msg = "Could not find config file in directory {0} - generating a default one."
-                                raise OSError(msg.format(tmp_config))
+                                msg = msg.format(tmp_config)
+                                raise OSError(msg)
                         # Otherwise throw an exception
                         else:
                             msg = "Could not find config file in directory {0} - generating a default one."
-                            raise OSError(msg.format(tmp_config))
+                            msg = msg.format(tmp_config)
+                            raise OSError(msg)
                 else:
-                    "The specified config file {0} does not exist - generating a default one.".format(filename)
-                    raise OSError(msg.format(filename))
+                    msg = "The specified config file {0} does not exist - generating a default one."
+                    msg = msg.format(filename)
+                    raise OSError(msg)
             except OSError as ose:
                 print(ose)
 
@@ -183,7 +186,8 @@ class Config_Handler(File_Handler):
                     if self.args.threads > self.mp_handler.core_count:
                         should_print = True
                         msg = "ERROR: User specified {0} threads which is more than the number the system supports ({1}). Checking config file for specified thread count."
-                        raise HunterAP_Process_Handler_Error(msg.format(self.args.threads, self.mp_handler.core_count))
+                        msg = msg.format(self.args.threads, self.mp_handler.core_count)
+                        raise HunterAP_Process_Handler_Error(msg)
                     else:
                         self.config_data[self.program]["threads"] = self.args.threads
                 else:
@@ -192,12 +196,10 @@ class Config_Handler(File_Handler):
             except HunterAP_Process_Handler_Error as hap_phe:
                 if should_print:
                     print(hap_phe)
-                try:
-                    if int(self.config_data[self.program]["threads"]) > self.mp_handler.core_count:
-                        msg = "WARNING: Config file specified {0} threads which is more than the number the system supports ({1}). Defaulting to 1 thread."
-                        raise HunterAP_Process_Handler_Error(msg.format(self.config_data[self.program]["threads"], self.mp_handler.core_count))
-                except HunterAP_Process_Handler_Error as hap_phe:
-                    print(hap_phe)
+                if int(self.config_data[self.program]["threads"]) > self.mp_handler.core_count:
+                    msg = "WARNING: Config file specified {0} threads which is more than the number the system supports ({1}). Defaulting to 1 thread."
+                    msg = msg.format(self.config_data[self.program]["threads"], self.mp_handler.core_count)
+                    print(msg)
                     self.config_data[self.program]["threads"] = 1
 
         def validate_processes(self):
@@ -208,7 +210,8 @@ class Config_Handler(File_Handler):
                     if self.args.processes > self.mp_handler.core_count:
                         should_print = True
                         msg = "WARNING: User specified {0} processes which is more than the number of threads the system supports ({1}). Checking config file for specified processes count."
-                        raise HunterAP_Process_Handler_Error(msg.format(self.args.processes, self.mp_handler.core_count))
+                        msg = msg.format(self.args.processes, self.mp_handler.core_count)
+                        raise HunterAP_Process_Handler_Error(msg)
                     else:
                         self.config_data[self.program]["processes"] = self.args.processes
                 else:
@@ -217,12 +220,11 @@ class Config_Handler(File_Handler):
             except HunterAP_Process_Handler_Error as hap_phe:
                 if should_print:
                     print(hap_phe)
-                try:
-                    if int(self.config_data[self.program]["processes"]) > self.mp_handler.core_count:
-                        msg = "WARNING: Config file specified {0} processes which is more than the number of threads the system supports ({1}). Defaulting to 1 process."
-                        raise HunterAP_Process_Handler_Error(msg.format(self.config_data[self.program]["processes"], self.mp_handler.core_count))
-                except HunterAP_Process_Handler_Error as hap_phe:
-                    print(hap_phe)
+
+                if int(self.config_data[self.program]["processes"]) > self.mp_handler.core_count:
+                    msg = "WARNING: Config file specified {0} processes which is more than the number of threads the system supports ({1}). Defaulting to 1 process."
+                    msg = msg.format(self.config_data[self.program]["processes"], self.mp_handler.core_count)
+                    print(msg)
                     self.config_data[self.program]["threads"] = 1
 
         def validate_threads_processes(self):
@@ -249,12 +251,11 @@ class Config_Handler(File_Handler):
             print("Checking FFmpeg executable...")
 
             if self.args.ffmpeg:
-                self.config_data[self.program]["ffmpeg"] = str(Path(self.args.ffmpeg))
-
-            if " " in self.config_data[self.program]["ffmpeg"]:
-                self.config_data[self.program]["ffmpeg"] = "\"{0}\"".format(self.config_data[self.program]["ffmpeg"])
+                self.config_data[self.program]["ffmpeg"] = File_Handler(self.args.ffmpeg, file_type="executable", exec_name="ffmpeg", os_name=self.mp_handler.sys_platform).file
             else:
-                self.config_data[self.program]["ffmpeg"] = "{0}".format(self.config_data[self.program]["ffmpeg"])
+                self.config_data[self.program]["ffmpeg"] = File_Handler(self.config_data[self.program]["ffmpeg"], file_type="executable", exec_name="ffmpeg", os_name=self.mp_handler.sys_platform).file
+
+            print("ffmpeg: {}".format(self.config_data[self.program]["ffmpeg"]))
 
             try:
                 ff = ffmpy.FFmpeg(
@@ -266,25 +267,30 @@ class Config_Handler(File_Handler):
 
                 if self.program == "Calculations":
                     if "--enable-libvmaf" in out.decode("utf-8"):
-                        raise OSError("FFmpeg is not built with VMAF support (\"--enable-libvmaf\"). The program can not continue and will now exit.")
+                        msg = "FFmpeg is not built with VMAF support (\"--enable-libvmaf\"). The program can not continue and will now exit."
+                        raise OSError(msg)
 
                 print("FFmpeg executable \"{0}\" is valid and contains the libvmaf library. Continuing...".format(self.config_data[self.program]["ffmpeg"]))
-            except (OSError, ffmpy.FFExecutableNotFoundError) as exc:
+            except ffmpy.FFExecutableNotFoundError as ffenfe:
                 if self.mp_handler.sys_platform == "Windows":
-                    if exc.winerror:
-                        msg = ""
-                        if exc.winerror == 5:
-                            msg = "ERROR: FFmpeg executable was not found in given path \"{0}\".\n".format(self.config_data[self.program]["ffmpeg"])
-                        elif exc.winerror == 193:
-                            msg = "ERROR: The provided file ({0}) is not a valid FFmpeg executable.\n".format(self.config_data[self.program]["ffmpeg"])
-                        msg += "FFmpeg is required for this program to run.\n"
-                        msg += "Please make sure you have FFmpeg installed correctly and that you pointing the program to the executable through either your config file or through runtime arguments."
-                        print(msg)
+                    msg = ""
+                    # if exc.winerror == 5:
+                    #     msg = "ERROR: FFmpeg executable was not found in given path \"{0}\".\n"
+                    #     msg = msg.format(self.config_data[self.program]["ffmpeg"])
+                    # elif exc.winerror == 193:
+                    #     msg = "ERROR: The provided file ({0}) is not a valid FFmpeg executable.\n"
+                    #     msg = msg.format(self.config_data[self.program]["ffmpeg"])
+                    msg = "ERROR: FFmpeg executable was not found in given path \"{0}\".\n"
+                    msg += "FFmpeg is required for this program to run.\n"
+                    msg += "Please make sure you have FFmpeg installed correctly and that you pointing the program to the executable through either your config file or through runtime arguments."
+                    msg = msg.format(self.config_data[self.program]["ffmpeg"])
+                    print(msg)
                 else:
-                    print(exc)
+                    print(ffenfe)
                 exit(1)
 
         def validate_model(self):
+            print("Validating VMAF model file...")
             model_finder = None
             if self.args.model:
                 model_finder = File_Handler(self.args.model, file_type="model").file
@@ -320,7 +326,11 @@ class Config_Handler(File_Handler):
                 out, err = ff.run(stdout=sp.PIPE, stderr=sp.PIPE)
 
                 if "could not read model from path" in err.decode("utf-8"):
-                    raise FileNotFoundError("Could not find model file {0}.".format(model_finder))
+                    raise FileNotFoundError("Could not find VMAF model file {0}.".format(model_finder))
+                else:
+                    msg = "VMAF model file {0} is valid for running with VMAF version {1}. Continuing..."
+                    msg = msg.format(self.config_data[self.program]["model"], self.config_data["General"]["vmaf_version"])
+                    print(msg)
             except FileNotFoundError as fnfe:
                 print(fnfe)
                 exit(1)
