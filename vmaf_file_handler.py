@@ -13,7 +13,7 @@ from typing import Tuple
 import xml.etree.ElementTree as xml
 
 
-class File_Handler:
+class VMAF_File_Handler:
     def __init__(self, file, file_type="config", exec_name=None, os_name="Windows"):
         self.file = None
         self.file_type = file_type

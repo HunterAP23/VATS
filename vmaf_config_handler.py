@@ -14,13 +14,13 @@ from typing import Tuple
 
 import ffmpy
 
-from file_handler import File_Handler
+from vmaf_file_handler import VMAF_File_Handler
 from HunterAP_Process_Handler import HunterAP_Process_Handler as proc_handler
 from HunterAP_Process_Handler import HunterAP_Process_Handler_Error
 from HunterAP_Common import print_dict
 
 
-class Config_Handler(File_Handler):
+class VMAF_Config_Handler(VMAF_File_Handler):
     def __init__(self, args, program: Optional[AnyStr] = "Calculations", mp_handler: Optional[proc_handler] = None):
         self.args = args
         self.program = program
@@ -32,7 +32,7 @@ class Config_Handler(File_Handler):
             filename = "config.ini"
 
         # if the file exists and is a file then use it
-        File_Handler.__init__(self, file=filename, file_type="config", os_name=self.mp_handler.sys_platform)
+        VMAF_File_Handler.__init__(self, file=filename, file_type="config", os_name=self.mp_handler.sys_platform)
         if self.file is not None:
             self.config_data = self.read_config(self.file)
         else:
@@ -251,9 +251,9 @@ class Config_Handler(File_Handler):
             print("Checking FFmpeg executable...")
 
             if self.args.ffmpeg:
-                self.config_data[self.program]["ffmpeg"] = File_Handler(self.args.ffmpeg, file_type="executable", exec_name="ffmpeg", os_name=self.mp_handler.sys_platform).file
+                self.config_data[self.program]["ffmpeg"] = VMAF_File_Handler(self.args.ffmpeg, file_type="executable", exec_name="ffmpeg", os_name=self.mp_handler.sys_platform).file
             else:
-                self.config_data[self.program]["ffmpeg"] = File_Handler(self.config_data[self.program]["ffmpeg"], file_type="executable", exec_name="ffmpeg", os_name=self.mp_handler.sys_platform).file
+                self.config_data[self.program]["ffmpeg"] = VMAF_File_Handler(self.config_data[self.program]["ffmpeg"], file_type="executable", exec_name="ffmpeg", os_name=self.mp_handler.sys_platform).file
 
             print("ffmpeg: {}".format(self.config_data[self.program]["ffmpeg"]))
 
@@ -293,9 +293,9 @@ class Config_Handler(File_Handler):
             print("Validating VMAF model file...")
             model_finder = None
             if self.args.model:
-                model_finder = File_Handler(self.args.model, file_type="model").file
+                model_finder = VMAF_File_Handler(self.args.model, file_type="model").file
             else:
-                model_finder = File_Handler(self.config_data[self.program]["model"], file_type="model").file
+                model_finder = VMAF_File_Handler(self.config_data[self.program]["model"], file_type="model").file
 
             if self.mp_handler.sys_platform == "Windows":
                 paths = list(Path(model_finder).parts)

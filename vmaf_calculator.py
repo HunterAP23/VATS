@@ -8,7 +8,7 @@ import time
 import ffmpy
 import numpy as np
 
-from config_handler import Config_Handler
+from vmaf_config_handler import VMAF_Config_Handler
 from HunterAP_Process_Handler import HunterAP_Process_Handler as proc_handler
 from HunterAP_Process_Handler import HunterAP_Process_Handler_Error
 from HunterAP_Common import print_dict
@@ -24,7 +24,7 @@ class VMAF_Calculator:
 
 
         # Create a Config_Reader object with the config file.
-        self.config = Config_Handler(self.args, mp_handler=self.mp_handler).get_config_data()
+        self.config = VMAF_Config_Handler(self.args, mp_handler=self.mp_handler).get_config_data()
 
         print_dict(self.config)
 
