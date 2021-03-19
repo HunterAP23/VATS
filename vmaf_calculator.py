@@ -1,12 +1,10 @@
 import argparse as argp
+from collections import namedtuple
 import multiprocessing as mp
-import os
-import shlex
 import subprocess as sp
 import time
 
 import ffmpy
-import numpy as np
 
 from vmaf_config_handler import VMAF_Config_Handler
 from HunterAP_Process_Handler import HunterAP_Process_Handler as proc_handler
@@ -17,20 +15,22 @@ from HunterAP_Common import print_dict
 class VMAF_Calculator:
     """Calculates VMAF and other visual score metric values using FFmpeg with multithreading and multiprocessing."""
     def __init__(self):
-        self.mp_handler = proc_handler()
+        self._mp_handler = proc_handler()
 
         # Parse arguments given by the user, if any
-        self.args = self.parse_arguments()
-
+        self._args = vars(self.parse_arguments())
 
         # Create a Config_Reader object with the config file.
-        self.config = VMAF_Config_Handler(self.args, mp_handler=self.mp_handler).get_config_data()
+        self._config = VMAF_Config_Handler(args=self._args, mp_handler=self._mp_handler).get_config_data()
 
-        print_dict(self.config)
+        # print_dict(self._config)
 
-        # self.Proccer = HunterAP_Process_Handler(
-        #     max_procs=self.
-        # )
+        self._mp_handler = proc_handler(
+            max_procs = self._config["Calculations"]["processes"],
+            max_threads = self._config["Calculations"]["threads"]
+        )
+
+        self.calculate_vmaf(self._args["distorted"], self._args["reference"])
 
     def parse_arguments(self):
         """Parse user given arguments for calculating VMAF."""
@@ -38,8 +38,8 @@ class VMAF_Calculator:
         main_help += "The 1st required argument is the Distorted Video file.\n"
         main_help += "The 2nd required argument is the Reference Video file that the Distorted Video is compared against.\n"
         parser = argp.ArgumentParser(description=main_help, formatter_class=argp.RawTextHelpFormatter, add_help=False)
-        parser.add_argument("Distorted_File", type=str, help="Distorted video file.")
-        parser.add_argument("Reference_File", type=str, help="Reference video file.")
+        parser.add_argument("distorted", type=str, help="distorted video file.")
+        parser.add_argument("reference", type=str, help="reference video file.")
 
         optional_args = parser.add_argument_group("Optional arguments")
         ffmpeg_help = "Specify the path to the FFmpeg executable (Default is \"ffmpeg\" which assumes that FFmpeg is part of your \"Path\" environment variable).\n"
@@ -82,8 +82,8 @@ class VMAF_Calculator:
         log_format_help = "Specify the VMAF log file format (Default is \"xml\").\n\n"
         optional_args.add_argument("-l", "--log-format", dest="log_format", choices=["xml", "csv", "json"], help=log_format_help)
 
-        log_name_help = "Specify the VMAF log file name (Default is \"vmaf\").\n\n"
-        optional_args.add_argument("-n", "--log-name", dest="log_name", help=log_name_help)
+        log_path_help = "Specify the VMAF log path and file name (Default is \"vmaf\").\n\n"
+        optional_args.add_argument("-n", "--log-name", dest="log_path", help=log_path_help)
 
         config_help = "Specify a config file to import multiple settings with (Default is \"config.ini\" in the same folder as the script).\n"
         config_help += "Values specified with the arguments above will override the settings in the config file."
@@ -95,29 +95,45 @@ class VMAF_Calculator:
         args = parser.parse_args()
         return args
 
-    def time_function(self, func, i: int, sema, rlock):
-        sema.acquire()
-        func(i, sema)
-        sema.release()
+    def calculate_vmaf(self, distorted, reference):
+        output_cmd = "-filter_complex "
 
-    def run_in_parallel(self, fn, threads: int, lis: list, sema, rlock):
-        proc = []
-        for i in lis:
-            p = mp.Process(target=self.time_function, args=(fn, i, sema, rlock))
-            proc.append(p)
+        tmp_filter = "libvmaf=model_path={}".format(self._config["Calculations"]["model"])
+        tmp_filter += ":log_fmt={}".format(self._config["Calculations"]["log_format"])
+        tmp_filter += ":log_path={}".format(self._config["Calculations"]["log_path"])
 
-        for p in proc:
-            p.start()
+        if self._config["Calculations"]["psnr"]:
+            tmp_filter += ":psnr=1"
+        if self._config["Calculations"]["ssim"]:
+            tmp_filter += ":ssim=1"
+        if self._config["Calculations"]["ms_ssim"]:
+            tmp_filter += ":ms_ssim=1"
+        tmp_filter += ":n_threads={}".format(self._config["Calculations"]["threads"])
 
-        for p in proc:
-            try:
-                p.join()
-            except Exception as e:
-                print(e)
+        output_cmd += repr(tmp_filter)
 
-    def multi_vmaf(self, i, sema):
-        command = "ffmpeg -i {0}"
-        sp.Popen(command, stdout=sp.PIPE, stderr=sp.PIPE)
+        output_cmd += " -f null"
+        output_cmd = output_cmd.replace(r"\\", "\\")
+
+        ff = ffmpy.FFmpeg(
+            executable = self._config["General"]["ffmpeg"],
+            inputs = {
+                distorted: None,
+                reference: None
+            },
+            outputs = {
+                "-": output_cmd
+            }
+        )
+
+        print("ff.cmd: {}".format(ff.cmd))
+        out, err = ff.run(stdout=sp.PIPE, stderr=sp.PIPE)
+
+        for line in out.decode("utf-8").split("\n"):
+            print(line)
+
+        for line in err.decode("utf-8").split("\n"):
+            print(line)
 
 
 if __name__ == "__main__":
@@ -131,6 +147,5 @@ if __name__ == "__main__":
     #
     # files_list = []
     #
-    # # for root, directories, filenames in os.walk():
     #
     # run_in_parallel(boring_task, threads, lis, sema, rlock)

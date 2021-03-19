@@ -10,129 +10,165 @@ from typing import List
 from typing import Optional
 from typing import Set
 from typing import Tuple
-import xml.etree.ElementTree as xml
+# import xml.etree.ElementTree as xml
 
 
 class VMAF_File_Handler:
-    def __init__(self, file, file_type="config", exec_name=None, os_name="Windows"):
-        self.file = None
-        self.file_type = file_type
-        self.exec_name = exec_name
-        self.os_name = os_name
+    def __init__(self, file: AnyStr, file_type: Optional[AnyStr] = "config", ext: Optional[AnyStr] = "json", os_name: Optional[AnyStr] = "Windows", vmaf_version: Optional[int] = 2, program: Optional[AnyStr] = "Calculations"):
+        self._file = None
+        self._file_type = file_type
+        self._os_name = os_name
+        self._vmaf = vmaf_version
+        self._program = program
+
+        # print("_file: {}".format(self._file))
+        # print("_file_type: {}".format(self._file_type))
+        # print("_os_name: {}".format(self._os_name))
+        # print("_vmaf: {}".format(self._vmaf))
+        # print("_program: {}".format(self._program))
+
+        if self._file_type == "config":
+            self._ext = [".ini"]
+        elif self._file_type == "model":
+            if self._vmaf == 1:
+                self._ext = [".pkl"]
+            else:
+                self._ext = [".json"]
+        elif self._file_type == "log":
+            if ext is None:
+                self._ext = [".json", ".csv", ".xml"]
+            else:
+                self._ext = list(ext)
+        elif self._os_name == "Windows" and self._file_type == "executable":
+            self._ext = [".exe"]
+        elif self._os_name != "Windows" and self._file_type == "executable":
+            self._ext = [""]
+
         try:
+            will_exit = False
             tmp_file = Path(file)
             if tmp_file.exists():
                 if tmp_file.is_file():
-                    self.file = file
+                    self._validate_file(tmp_file, will_exit)
                 elif tmp_file.is_dir():
-                    self.find_file(file, should_exit=True)
-
+                    if self._file_type in ["model", "executable"]:
+                        will_exit = True
+                    elif self._file_type == "log":
+                        if self._program != "Calculations":
+                            will_exit = True
+                    self._find_file(tmp_file, will_exit)
             else:
                 msg = ""
-                if file_type == "config":
+                if self._file_type == "config":
                     msg = "WARNING: Config file \"{}\" does not exist. Generating default config.".format(file)
-                elif file_type == "log":
+                elif self._file_type == "log":
+                    if self._program == "Calculations":
+                        if tmp_file.suffix == "":
+                            self._file = str(Path(file + ".json"))
+                        else:
+                            self._file = str(Path(file))
+                        return
                     msg = "ERROR: Log file \"{}\" does not exist. The program will now exit.".format(file)
-                elif file_type == "model":
+                elif self._file_type == "model":
                     msg = "ERROR: VMAF model file \"{}\" does not exist. The program will now exit.".format(file)
-                elif file_type == "executable":
+                elif self._file_type == "executable":
                     # msg = "ERROR: Executable \"{}\" does not exist. The program will now exit.".format(file)
                     for item in os.environ["PATH"].split(";"):
-                        if self.file is None:
+                        if self._file is None:
                             if item.lower() != "c":
-                                self.find_file(item)
+                                self._find_file(Path(item))
                         else:
                             return
+                    if self._file is None:
+                        msg = "ERROR: File \"{}\" does not exist. The program will now exit.".format(file)
+                        raise FileNotFoundError(msg)
                 else:
                     msg = "ERROR: File \"{}\" does not exist. The program will now exit.".format(file)
                 raise FileNotFoundError(msg)
         except FileNotFoundError as fnfe:
             print(fnfe)
             if file_type == "config":
-                self.file = "config.ini"
+                self._file = "config.ini"
             else:
                 exit(1)
 
-    def find_file(self, loc, should_exit=False):
+    def get_file(self):
+        return self._file
+
+    def _find_file(self, loc, should_exit=False):
         try:
-            loc_path = Path(loc)
-            if loc_path.exists():
-                for entry in loc_path.iterdir():
+            if loc.exists():
+                for entry in loc.iterdir():
                     if entry.is_file():
-                        if self.file_type == "config":
-                            if entry.suffix == ".ini":
-                                self.file = str(Path(entry))
-                                return
-                        elif self.file_type == "log":
-                            if entry.suffix in [".json", ".xml", ".csv"]:
-                                self.file = str(Path(entry))
-                                return
-                        elif self.file_type == "model":
-                            if entry.suffix in [".pkl", ".json"]:
-                                self.file = str(Path(entry))
-                                return
-                        elif self.file_type == "executable":
-                            if os.access(entry, os.X_OK):
-                                if self.os_name == "Windows":
-                                    if ".exe" in self.exec_name:
-                                        if entry.name == self.exec_name:
-                                            self.file = str(Path(entry))
-                                            return
-                                    else:
-                                        if entry.name == self.exec_name + ".exe":
-                                            self.file = str(Path(entry))
-                                            return
-                                else:
-                                    if entry.name == self.exec_name:
-                                        self.file = str(Path(entry))
-                                        return
-
-                if should_exit:
-                    if self.file_type == "config":
-                        msg = "WARNING: Could not find any config files in path \"{0}\". Generating default config."
-                        msg = msg.format(loc)
-                        raise FileNotFoundError(msg)
-                    elif self.file_type == "log":
-                        msg = "ERROR: Could not find any VMAF log files in path \"{0}\". The program will now exit."
-                        msg = msg.format(loc)
-                        raise FileNotFoundError(msg)
-                    elif self.file_type == "model":
-                        msg = "ERROR: Could not find any VMAF model files in path \"{0}\". The program will now exit."
-                        msg = msg.format(loc)
-                        raise FileNotFoundError(msg)
-                    elif self.file_type == "executable":
-                        msg = "ERROR: Could not find any executables in path \"{0}\". The program will now exit."
-                        msg = msg.format(loc)
-                        raise FileNotFoundError(msg)
-
+                        if self._file is None:
+                            self._validate_file(entry, should_exit)
+                        else:
+                            return
+            else:
+                raise FileNotFoundError("ERROR: Could not find {0} file in {1}. The program will now exit.".format(self._file_type, loc))
         except FileNotFoundError as fnfe:
             print(fnfe)
             if type == "config":
-                self.file = None
+                self._file = None
             else:
-                print("ERROR: Could not find {0} file specified. The program will now exit.".format(type))
-                exit(1)
+                if should_exit:
+                    exit(1)
 
-    # def find_log(self, loc):
-    #     loc_path = Path(loc)
-    #     file_found = False
-    #     for entry in loc_path.iterdir():
-    #         if file_found:
-    #             if str(Path(entry.name)) == "config.ini":
-    #                 self.file = str(Path(os.getcwd()).joinpath(entry.name))
-    #             else:
-    #                 self.file = str(Path(entry.name).joinpath(entry.parent))
-    #             return
-    #         if entry.is_file():
-    #             if entry.suffix == ".json":
-    #                 self.log_type = "json"
-    #                 file_found = True
-    #             elif entry.suffix == ".xml":
-    #                 self.log_type = "xml"
-    #                 file_found = True
-    #             elif entry.suffix == ".csv":
-    #                 self.log_type = "csv"
-    #                 file_found = True
-    #
-    #     print("ERROR: Could not find any log files in path \"{0}\". The program will now exit.".format(loc))
-    #     exit(1)
+    def _validate_file(self, file, should_exit):
+        exec_check = None
+        if self._file_type == "executable":
+            if self._os_name == "Windows" and file.suffix == ".exe":
+                exec_check = True
+            elif self._os_name != "Windows":
+                exec_check = True
+            else:
+                exec_check = False
+
+        if file.suffix in self._ext or exec_check:
+            if self._file_type == "config":
+                self._file = str(file)
+                return
+            elif self._file_type == "model":
+                check1 = bool(file.suffix == ".pkl" and self._vmaf == 1)
+                check2 = bool(file.suffix == ".json" and self._vmaf == 2)
+                if check1 or check2:
+                    self._file = str(file)
+                    return
+            elif self._file_type == "log":
+                self._file = str(file)
+            elif self._file_type == "executable":
+                if os.access(file, os.X_OK):
+                    if self._os_name == "Windows":
+                        if file.suffix == "" and file.name == "ffmpeg":
+                            self._file = str(file.joinpath(".exe"))
+                            return
+                        elif file.name == "ffmpeg.exe":
+                            self._file = str(file)
+                            return
+                    else:
+                        if file.name == "ffmpeg":
+                            self._file = str(file)
+                            return
+
+        if should_exit:
+            if self._file_type == "config":
+                msg = "WARNING: Could not find any config files in path \"{0}\". Generating default config."
+                msg = msg.format(file)
+                raise FileNotFoundError(msg)
+            elif self._file_type == "log":
+                msg = "ERROR: Could not find any VMAF log files in path \"{0}\". The program will now exit."
+                msg = msg.format(file)
+                raise FileNotFoundError(msg)
+            elif self._file_type == "model":
+                msg = ""
+                if model_error_type is None:
+                    msg = "ERROR: Could not find any VMAF model files in path \"{0}\". The program will now exit."
+                    msg = msg.format(file)
+                else:
+                    msg = "ERROR: VMAF model files in path \"{0}\" are not valid for VMAF version {1}. The program will now exit."
+                    msg = msg.format(file, self._vmaf)
+                raise FileNotFoundError(msg)
+            elif self._file_type == "executable":
+                msg = "ERROR: Could not find any executables in path \"{0}\". The program will now exit."
+                msg = msg.format(file)
+                raise FileNotFoundError(msg)
