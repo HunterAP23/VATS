@@ -96,7 +96,7 @@ class VMAF_Calculator:
         return args
 
     def calculate_vmaf(self, distorted, reference):
-        output_cmd = "-filter_complex "
+        output_cmd = "-hide_banner -filter_complex "
 
         tmp_filter = "libvmaf=model_path={}".format(self._config["Calculations"]["model"])
         tmp_filter += ":log_fmt={}".format(self._config["Calculations"]["log_format"])
@@ -129,11 +129,12 @@ class VMAF_Calculator:
         print("ff.cmd: {}".format(ff.cmd))
         out, err = ff.run(stdout=sp.PIPE, stderr=sp.PIPE)
 
-        for line in out.decode("utf-8").split("\n"):
-            print(line)
+        # for line in out.decode("utf-8").split("\n"):
+        #     print(line)
 
         for line in err.decode("utf-8").split("\n"):
-            print(line)
+            if "VMAF score" in line:
+                print(line)
 
 
 if __name__ == "__main__":
