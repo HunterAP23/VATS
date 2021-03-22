@@ -6,6 +6,7 @@ import time
 
 import ffmpy
 
+from ffmpy_handler import FFmpy_Handler
 from vmaf_config_handler import VMAF_Config_Handler
 from HunterAP_Process_Handler import HunterAP_Process_Handler as proc_handler
 from HunterAP_Process_Handler import HunterAP_Process_Handler_Error
@@ -15,6 +16,7 @@ from HunterAP_Common import print_dict
 class VMAF_Calculator:
     """Calculates VMAF and other visual score metric values using FFmpeg with multithreading and multiprocessing."""
     def __init__(self):
+        """Run general class creation fnctions and begin calculating VMAF"""
         self._mp_handler = proc_handler()
 
         # Parse arguments given by the user, if any
@@ -26,8 +28,8 @@ class VMAF_Calculator:
         # print_dict(self._config)
 
         self._mp_handler = proc_handler(
-            max_procs = self._config["Calculations"]["processes"],
-            max_threads = self._config["Calculations"]["threads"]
+            max_procs=self._config["Calculations"]["processes"],
+            max_threads=self._config["Calculations"]["threads"]
         )
 
         self.calculate_vmaf(self._args["distorted"], self._args["reference"])
@@ -43,7 +45,7 @@ class VMAF_Calculator:
 
         optional_args = parser.add_argument_group("Optional arguments")
         ffmpeg_help = "Specify the path to the FFmpeg executable (Default is \"ffmpeg\" which assumes that FFmpeg is part of your \"Path\" environment variable).\n"
-        ffmpeg_help += "The path must either point to the executable itself, or to the directory that contains the exectuable named \"ffmpeg\".\n\n"
+        ffmpeg_help += "The path must either point to the executable itself, or to the directory that contains the executable named \"ffmpeg\".\n\n"
         optional_args.add_argument("-f", "--ffmpeg", dest="ffmpeg", help=ffmpeg_help)
 
         threads_help = "Specify number of threads to be used for each process (Default is 0 for \"autodetect\").\n"
@@ -116,12 +118,12 @@ class VMAF_Calculator:
         output_cmd = output_cmd.replace(r"\\", "\\")
 
         ff = ffmpy.FFmpeg(
-            executable = self._config["General"]["ffmpeg"],
-            inputs = {
+            executable=self._config["General"]["ffmpeg"],
+            inputs={
                 distorted: None,
                 reference: None
             },
-            outputs = {
+            outputs={
                 "-": output_cmd
             }
         )

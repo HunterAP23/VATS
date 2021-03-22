@@ -3,12 +3,7 @@ import configparser as confp
 from pathlib import Path
 
 # Variable typing
-from typing import AnyStr
-from typing import Dict
-from typing import List
 from typing import Optional
-from typing import Set
-from typing import Tuple
 
 # Process related
 import subprocess as sp
@@ -27,7 +22,7 @@ from HunterAP_Common import print_dict
 
 
 class VMAF_Config_Handler(VMAF_File_Handler):
-    def __init__(self, args: Dict, mp_handler: proc_handler, program: Optional[AnyStr] = "Calculations"):
+    def __init__(self, args: dict, mp_handler: proc_handler, program: Optional[str] = "Calculations"):
         self._args = args
         self._program = program
         self._mp_handler = mp_handler
@@ -256,8 +251,8 @@ class VMAF_Config_Handler(VMAF_File_Handler):
 
             try:
                 ff = ffmpy.FFmpeg(
-                    executable = self._config_data["General"]["ffmpeg"],
-                    global_options = ["-h"]
+                    executable=self._config_data["General"]["ffmpeg"],
+                    global_options=["-h"]
                 )
 
                 out, err = ff.run(stdout=sp.PIPE, stderr=sp.PIPE)
@@ -299,7 +294,6 @@ class VMAF_Config_Handler(VMAF_File_Handler):
                 if len(Path(tmp_model).resolve().parts) == 1:
                     tmp_model = Path(Path.cwd().joinpath(tmp_model))
 
-
             try:
                 if self._config_data["General"]["vmaf_version"] == 1:
                     if not tmp_model.endswith(".pkl"):
@@ -313,12 +307,12 @@ class VMAF_Config_Handler(VMAF_File_Handler):
                 output_cmd += " -f null"
                 output_cmd = str(output_cmd).format(tmp_model)
                 ff = ffmpy.FFmpeg(
-                    executable = self._config_data["General"]["ffmpeg"],
-                    inputs = {
+                    executable=self._config_data["General"]["ffmpeg"],
+                    inputs={
                         "video_samples/sample1.mp4": None,
                         "video_samples/sample2.mp4": None
                     },
-                    outputs = {
+                    outputs={
                         "-": output_cmd
                     }
                 )

@@ -4,7 +4,21 @@ This script is a combination of forking
 combining it with the live motion graphing from my own repository
 [HunterAP23/GameBench_Graph_Maker](https://github.com/HunterAP23/GameBench_Graph_Maker).
 
-Status (02/19/2021): INCOMPLETE - Does not currently work
+# Status (03/22/2021)
+Last Update: 03/22/2021
+INCOMPLETE
+VMAF Calculator works with a single input of two files and a single output.
+VMAF Plotter works on a single FMAF log file at a time.
+
+# TODO
+1. Finish FFmpy handler class
+2. Allow VMAF Calculator to take a directory as an input for the "distorted" video files.
+3. Finish multiprocess handling of VMAF calculations.
+4. Finish multiprocess handling of VMAF plotting.
+5. Clean up, refactor, and comment code to be more human readable.
+6. Write test unit cases for validating program before release.
+7. Create setup script for easier installation.
+8. Develop Docker image
 
 There are two parts to this project:
 1. Calculating VMAF through the use of the FFmpeg program with the ability to run
@@ -21,7 +35,71 @@ like PSNR, SSIM, and MS_SSIM. It also attempts to utilize multithreading where
 available, with the main focus being able to run multiple VMAF calculations
 simultaneously to maximize the speed of all calculations.
 
-## Usage
+### Usage
+```bash
+usage: vmaf_calculator.py [-f FFMPEG] [-t THREADS PER PROCESS]
+                          [-p PROCESSES] [-u] [-v {1,2}] [--psnr] [--ssim] [--ms-ssim] [-m MODEL] [-l {xml,csv,json}] [-n LOG_PATH]
+                          [-c CONFIG] [-h]
+                          distorted reference
+
+Multithreaded VMAF log file generator through FFmpeg.
+The 1st required argument is the Distorted Video file.
+The 2nd required argument is the Reference Video file that the Distorted Video is compared against.
+
+positional arguments:
+  distorted             distorted video file.
+  reference             reference video file.
+
+Optional arguments:
+  -f FFMPEG, --ffmpeg FFMPEG
+                        Specify the path to the FFmpeg executable (Default is "ffmpeg" which assumes that FFmpeg is part of your "Path" environment variable).
+                        The path must either point to the executable itself, or to the directory that contains the exectuable named "ffmpeg".
+
+  -t THREADS PER PROCESS, --threads THREADS PER PROCESS
+                        Specify number of threads to be used for each process (Default is 0 for "autodetect").
+                        Specifying more threads than there are available will clamp the value down to 1 thread for safety purposes.
+                        A single VMAF process will effectively max out at 12 threads - any more will provide little to no performance increase.
+                        The recommended value of threads to use per process is 4-6.
+
+  -p PROCESSES, --processes PROCESSES
+                        Specify number of simultaneous VMAF calculation processes to run (Default is 1).
+                        Specifying more processes than there are available CPU threads will clamp the value down to the maximum number of threads on the system for a total of 1 thread per process.
+
+  -u, --use-rem-threads
+                        Specify whether or not to use remaining threads that don't make a complete process to use for an process (Default is off).
+                        For example, if your system has 16 threads, and you are running 5 processes with 3 threads each, then you will be using 4 * 3 threads, which is 12.
+                        This means you will have 1 thread that will remain unused.
+                        Using this option would run one more VMAF calculation process with only the single remaining thread.
+                        This option is not recommended, as the unused threads will be used to keep the system responsive during the VMAF calculations.
+
+  -v {1,2}, --vmaf-version {1,2}
+                        Specify the VMAF version to use (Default is 2).
+
+  --psnr                Enable calculating PSNR values (Default is off).
+
+  --ssim                Enable calculating SSIM values (Default is off).
+
+  --ms-ssim             Enable calculating MS-SSIM values (Default is off).
+
+  -m MODEL, --model MODEL
+                        Specify the VMAF model file to use (Default is "vmaf_v0.6.1.pkl" for VMAF version 1 and "vmaf_v0.6.1.json" for VMAF version 2).
+                        By default, this variable assumes the model file is located in the same location as this script.
+
+  -l {xml,csv,json}, --log-format {xml,csv,json}
+                        Specify the VMAF log file format (Default is "xml").
+
+  -n LOG_PATH, --log-name LOG_PATH
+                        Specify the VMAF log path and file name (Default is "vmaf").
+
+  -c CONFIG, --config CONFIG
+                        Specify a config file to import multiple settings with (Default is "config.ini" in the same folder as the script).
+                        Values specified with the arguments above will override the settings in the config file.
+
+Miscellaneous arguments:
+  -h, --help            Show this help message and exit.
+```
+
+###
 
 # VMAF Plotter
 This will generate a single image to show the VMAF values for the inputted VMAF
@@ -30,12 +108,12 @@ graph, both at the same framerate (as reported by the source VMAF report) and
 has a transparent background.
 ![](graph_examples/plot_720p_default.svg)
 
-## Usage
+### Usage
 ```bash
 usage: vmaf_plotter.py [-o OUTPUT] [-l {default,min,zero,custom}] [-c CUSTOM] [-r {720,1080,1440,4k}] [-d DPI] [-v {1,2}] [-f FPS] [-h] VMAF_FILE
 ```
 
-## Example
+### Example
 This creates an image and video with 1440p resolution, 24fps, and the y-axis range is 0 to 100.
 ```bash
 python plot_vmaf.py vmaf.xml -o plot.svg -r 1440p -f 24 -l zero
@@ -54,7 +132,7 @@ Optional arguments:
                         If no path is given, then the files are saved to this project folder.
   -l {default,min,zero,custom}, --lower-boundary {default,min,zero,custom}
                         Choose what the lowest value of the graph will be.
-                        - "default" uses the lowest VMAF value minus 5 as the lowest point of the y-axis so the values aren't so stretched vertically.
+                        - "default" uses the lowest VMAF value minus 5 as the lowest point of the y-axis so the values are not so stretched vertically.
                         - "min" will use whatever the lowest VMAF value is as the lowest point of the y-axis. May make the data look a bit stretched vertically.
                         - "zero" will explicitly use 0 as the lowest point on the y-axis. May make the data look a bit compressed vertically.
                         - "custom" will use the value entered by the user in the "-c" / "--custom" option.
@@ -79,7 +157,7 @@ Miscellaneous arguments:
 ```
 
 ## Requirements
-Python 3
+Python 3 (preferably 3.9)
 Matplotlib
 Numpy
 FFMpeg

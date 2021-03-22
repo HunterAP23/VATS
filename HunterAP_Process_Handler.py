@@ -17,12 +17,7 @@ import inspect
 import traceback
 
 # Miscellaneous
-from typing import AnyStr
-from typing import Dict
-from typing import List
 from typing import Optional
-from typing import Set
-from typing import Tuple
 
 
 class HunterAP_Process_Handler_Error(Exception):
@@ -30,7 +25,7 @@ class HunterAP_Process_Handler_Error(Exception):
 
 
 class HunterAP_Process_Handler:
-    def __init__(self, max_procs: Optional[int] = 1, max_threads: Optional[int] = 1, funcs: Optional[Dict] = {}):
+    def __init__(self, max_procs: Optional[int] = 1, max_threads: Optional[int] = 1, funcs: Optional[dict] = None):
         self._pid = os.getpid()
         self._core_count = mp.cpu_count()
         self._usable_cores_count = None
@@ -98,12 +93,10 @@ class HunterAP_Process_Handler:
             elif max_procs < self._core_count:
                 if max_procs == 0:
                     max_procs = 1
-                print("max_procs: {}".format(max_procs))
                 try:
                     self._pool_proc = mp.Pool(max_procs)
                 except Exception as e:
                     print(e)
-                    inp = input("Wait...")
         else:
             if any(check) or max_procs >= self._usable_cores_count:
                 self._pool_proc = mp.Pool(self._usable_cores_count)

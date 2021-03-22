@@ -4,17 +4,12 @@ import json
 import multiprocessing as mp
 import os
 from pathlib import Path
-from typing import AnyStr
-from typing import Dict
-from typing import List
 from typing import Optional
-from typing import Set
-from typing import Tuple
 # import xml.etree.ElementTree as xml
 
 
 class VMAF_File_Handler:
-    def __init__(self, file: AnyStr, file_type: Optional[AnyStr] = "config", ext: Optional[AnyStr] = "json", os_name: Optional[AnyStr] = "Windows", vmaf_version: Optional[int] = 2, program: Optional[AnyStr] = "Calculations"):
+    def __init__(self, file: str, file_type: Optional[str] = "config", ext: Optional[str] = "json", os_name: Optional[str] = "Windows", vmaf_version: Optional[int] = 2, program: Optional[str] = "Calculations"):
         self._file = None
         self._file_type = file_type
         self._os_name = os_name
@@ -123,6 +118,8 @@ class VMAF_File_Handler:
                 exec_check = True
             else:
                 exec_check = False
+
+        model_error_type = None
 
         if file.suffix in self._ext or exec_check:
             if self._file_type == "config":
