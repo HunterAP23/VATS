@@ -4,7 +4,6 @@ import subprocess as sp
 
 # Scheduling related
 import sched
-import time
 
 # System related
 import os
@@ -18,6 +17,9 @@ import traceback
 
 # Miscellaneous
 from typing import Optional
+from typing import Union
+
+from HunterAP_Common import print_err
 
 
 class HunterAP_Process_Handler_Error(Exception):
@@ -96,41 +98,94 @@ class HunterAP_Process_Handler:
                 try:
                     self._pool_proc = mp.Pool(max_procs)
                 except Exception as e:
-                    print(e)
+                    print_err(e)
         else:
             if any(check) or max_procs >= self._usable_cores_count:
                 self._pool_proc = mp.Pool(self._usable_cores_count)
             elif max_procs < self._usable_cores_count:
                 self._pool_proc = mp.Pool(max_procs)
 
-    # def get_pid(self):
-    #     return self._pid
-    #
-    # def get_affinity(self):
-    #     return self._usable_cores
+    def get_pid(self):
+        return self._pid
 
-    def _get_sys_platform(self):
+    def get_affinity(self):
+        return self._usable_cores
+
+    def get_sys_platform(self):
         return self._sys_platform
 
-    def _get_core_count(self):
+    def get_core_count(self):
         return self._core_count
 
-    def _time_function(self, func, i: int, sema, rlock):
+    def _time_function(self, func, args: Union[dict, list, tuple], sema, rlock):
         sema.acquire()
-        func(i, sema)
+        func(**args, sema=sema)
         sema.release()
 
-    def _run_in_parallel(self, fn, threads: int, lis: list, sema, rlock):
-        proc = []
-        for i in lis:
-            p = mp.Process(target=self._time_function, args=(fn, i, sema, rlock))
-            proc.append(p)
+    def _run_map(self, func, args, name: Optional[str]):
+        return
 
-        for p in proc:
-            p.start()
+    def test_callable(self, name, method):
+        try:
+            if callable(method):
+                return True
+            else:
+                msg = "{} is not a callable method and will be removed from the pool."
+                raise TypeError(msg.format(name))
+        except TypeError as te:
+            print_err(te)
+            return False
 
-        for p in proc:
-            try:
-                p.join()
-            except Exception as e:
-                print(e)
+    def _run_in_parallel(self, funcs: Union[dict, list, tuple], args: Union[dict, list, tuple], threads: int, sema: mp.Semaphore, rlock: mp.RLock):
+        # proc = []
+        # for func in funcs:
+        #     p = mp.Process(target=self._time_function, args=(func, args[func], sema, rlock))
+        #     proc.append(p)
+        #
+        # for p in proc:
+        #     p.start()
+        #
+        # for p in proc:
+        #     try:
+        #         p.join()
+        #     except Exception as e:
+        #         print_err(e)
+        funcs_data = dict()
+        try:
+            if type(funcs) is dict:
+                if len(funcs) == 1:
+                    (name, func), = funcs.items()
+                    if self.test_callable(name, func):
+                        funcs_data[name] = dict()
+                        funcs_data[name]["Function"] = func
+                    else:
+                        raise IndexError()
+                else:
+                    for name, func in funcs.items():
+                        if self.test_callable(name, func):
+                            funcs_data[name] = dict()
+                            funcs_data[name]["Function"] = func
+                    if len(funcs_data) == 0:
+                        raise IndexError()
+            elif type(args) in (list, tuple):
+                if len(funcs) == 1:
+                    func = funcs[0]
+                    name = func.__name__
+        except IndexError as ie:
+            msg = "{}: There are no valid functons given from arguments {} and {}."
+            print_err(msg.format(ie, funcs, args))
+            exit(1)
+
+        arg = None
+        if name in args.keys():
+            arg = args[name]
+        elif func.__name__ in args:
+            arg = args[func.__name__]
+
+        self._run_map(func)
+
+
+if __name__ == "__main__":
+    inst = HunterAP_Process_Handler()
+    for k, v in vars(inst).items():
+        print("{}: {}".format(k, v))

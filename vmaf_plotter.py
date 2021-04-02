@@ -4,7 +4,6 @@ import argparse as argp
 import os
 import statistics
 import sys
-import time
 
 from matplotlib import pyplot as plt
 from matplotlib import animation
@@ -126,8 +125,7 @@ def plot_vmaf(vmafs, fps, low, res, custom, dpi):
     minutes = int(time_taken / 60)
     hours = int(minutes / 60)
     seconds = time_taken % 60
-    print("")
-    print("Done! Video took took {0}H : {1}M : {2:0.2f}S to export.".format(hours, minutes, seconds))
+    print("\nDone! Video took took {0}H : {1}M : {2:0.2f}S to export.".format(hours, minutes, seconds))
 
 
 def main(args):

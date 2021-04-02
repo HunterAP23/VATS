@@ -1,16 +1,9 @@
 import argparse as argp
-from collections import namedtuple
-import multiprocessing as mp
-import subprocess as sp
-import time
-
-import ffmpy
+# from multiprocessing import cpu_count
 
 from ffmpy_handler import FFmpy_Handler
 from vmaf_config_handler import VMAF_Config_Handler
 from HunterAP_Process_Handler import HunterAP_Process_Handler as proc_handler
-from HunterAP_Process_Handler import HunterAP_Process_Handler_Error
-from HunterAP_Common import print_dict
 
 
 class VMAF_Calculator:
@@ -25,7 +18,7 @@ class VMAF_Calculator:
         # Create a Config_Reader object with the config file.
         self._config = VMAF_Config_Handler(args=self._args, mp_handler=self._mp_handler).get_config_data()
 
-        # print_dict(self._config)
+        self._ffmpy = FFmpy_Handler(self._config["General"]["ffmpeg"])
 
         self._mp_handler = proc_handler(
             max_procs=self._config["Calculations"]["processes"],
@@ -34,7 +27,7 @@ class VMAF_Calculator:
 
         self.calculate_vmaf(self._args["distorted"], self._args["reference"])
 
-    def parse_arguments(self):
+    def parse_arguments(self) -> argp.Namespace:
         """Parse user given arguments for calculating VMAF."""
         main_help = "Multithreaded VMAF log file generator through FFmpeg.\n"
         main_help += "The 1st required argument is the Distorted Video file.\n"
@@ -52,11 +45,13 @@ class VMAF_Calculator:
         threads_help += "Specifying more threads than there are available will clamp the value down to 1 thread for safety purposes.\n"
         threads_help += "A single VMAF process will effectively max out at 12 threads - any more will provide little to no performance increase.\n"
         threads_help += "The recommended value of threads to use per process is 4-6.\n\n"
-        optional_args.add_argument("-t", "--threads", dest="threads", type=int, choices=[i for i in range(mp.cpu_count())], help=threads_help)
+        # optional_args.add_argument("-t", "--threads", dest="threads", type=int, choices=[i for i in range(cpu_count())], help=threads_help)
+        optional_args.add_argument("-t", "--threads", dest="threads", type=int, help=threads_help)
 
         proc_help = "Specify number of simultaneous VMAF calculation processes to run (Default is 1).\n"
         proc_help += "Specifying more processes than there are available CPU threads will clamp the value down to the maximum number of threads on the system for a total of 1 thread per process.\n\n"
-        optional_args.add_argument("-p", "--processes", dest="processes", type=int, choices=[i for i in range(1, mp.cpu_count())], help=proc_help)
+        # optional_args.add_argument("-p", "--processes", dest="processes", type=int, choices=[i for i in range(1, cpu_count())], help=proc_help)
+        optional_args.add_argument("-p", "--processes", dest="processes", type=int, help=proc_help)
 
         rem_threads_help = "Specify whether or not to use remaining threads that don't make a complete process to use for an process (Default is off).\n"
         rem_threads_help += "For example, if your system has 16 threads, and you are running 5 processes with 3 threads each, then you will be using 4 * 3 threads, which is 12.\n"
@@ -97,7 +92,7 @@ class VMAF_Calculator:
         args = parser.parse_args()
         return args
 
-    def calculate_vmaf(self, distorted, reference):
+    def calculate_vmaf(self, distorted: str, reference: str) -> None:
         output_cmd = "-hide_banner -filter_complex "
 
         tmp_filter = "libvmaf=model_path={}".format(self._config["Calculations"]["model"])
@@ -117,19 +112,20 @@ class VMAF_Calculator:
         output_cmd += " -f null"
         output_cmd = output_cmd.replace(r"\\", "\\")
 
-        ff = ffmpy.FFmpeg(
-            executable=self._config["General"]["ffmpeg"],
-            inputs={
+        cmd_args = {
+            "ff_inputs": {
                 distorted: None,
                 reference: None
             },
-            outputs={
+            "ff_outputs": {
                 "-": output_cmd
             }
-        )
+        }
 
-        print("ff.cmd: {}".format(ff.cmd))
-        out, err = ff.run(stdout=sp.PIPE, stderr=sp.PIPE)
+        cmd = self._ffmpy.run_command(**cmd_args, get_cmd=True)
+
+        print("cmd: {}".format(cmd))
+        out, err = self._ffmpy.run_command(**cmd_args)
 
         # for line in out.decode("utf-8").split("\n"):
         #     print(line)

@@ -4,6 +4,7 @@ import os
 import xml.etree.ElementTree as xml
 
 from file_handler import File_Handler
+from HunterAP_Common import print_err
 
 
 class Report_Handler(File_Handler):
@@ -33,7 +34,7 @@ class Report_Handler(File_Handler):
             else:
                 raise OSError("File {} does not exist.".format(filename))
         except OSError as ose:
-            print(ose)
+            print_err(ose)
             exit(1)
 
     def validate_file(self, filename):
@@ -52,7 +53,7 @@ class Report_Handler(File_Handler):
             else:
                 raise OSError("The specified report file {0} does not exist.".format(filename))
         except OSError as ose:
-            print(ose)
+            print_err(ose)
             exit(1)
 
     def read_file(self):

@@ -1,11 +1,12 @@
 import configparser as confp
 import csv
 import json
-import multiprocessing as mp
 import os
 from pathlib import Path
 from typing import Optional
 # import xml.etree.ElementTree as xml
+
+from HunterAP_Common import print_err
 
 
 class VMAF_File_Handler:
@@ -15,12 +16,6 @@ class VMAF_File_Handler:
         self._os_name = os_name
         self._vmaf = vmaf_version
         self._program = program
-
-        # print("_file: {}".format(self._file))
-        # print("_file_type: {}".format(self._file_type))
-        # print("_os_name: {}".format(self._os_name))
-        # print("_vmaf: {}".format(self._vmaf))
-        # print("_program: {}".format(self._program))
 
         if self._file_type == "config":
             self._ext = [".ini"]
@@ -63,34 +58,35 @@ class VMAF_File_Handler:
                         else:
                             self._file = str(Path(file))
                         return
-                    msg = "ERROR: Log file \"{}\" does not exist. The program will now exit.".format(file)
+                    msg = "ERROR: Log file \"{}\" does not exist.".format(file)
                 elif self._file_type == "model":
-                    msg = "ERROR: VMAF model file \"{}\" does not exist. The program will now exit.".format(file)
+                    msg = "ERROR: VMAF model file \"{}\" does not exist.".format(file)
                 elif self._file_type == "executable":
-                    # msg = "ERROR: Executable \"{}\" does not exist. The program will now exit.".format(file)
+                    # msg = "ERROR: Executable \"{}\" does not exist.".format(file)
                     for item in os.environ["PATH"].split(";"):
                         if self._file is None:
-                            if item.lower() != "c":
+                            if (self._os_name == "Windows" and item.lower() != "c") or self._os_name != "Windows":
                                 self._find_file(Path(item))
                         else:
                             return
                     if self._file is None:
-                        msg = "ERROR: File \"{}\" does not exist. The program will now exit.".format(file)
+                        msg = "ERROR: File \"{}\" does not exist.".format(file)
                         raise FileNotFoundError(msg)
                 else:
-                    msg = "ERROR: File \"{}\" does not exist. The program will now exit.".format(file)
+                    msg = "ERROR: File \"{}\" does not exist.".format(file)
                 raise FileNotFoundError(msg)
         except FileNotFoundError as fnfe:
-            print(fnfe)
+            print_err(fnfe)
             if file_type == "config":
                 self._file = "config.ini"
             else:
+                print_err("The program will now exit.")
                 exit(1)
 
-    def get_file(self):
+    def get_file(self) -> str:
         return self._file
 
-    def _find_file(self, loc, should_exit=False):
+    def _find_file(self, loc: str, filename: str = "", should_exit: bool = False) -> None:
         try:
             if loc.exists():
                 for entry in loc.iterdir():
@@ -99,17 +95,17 @@ class VMAF_File_Handler:
                             self._validate_file(entry, should_exit)
                         else:
                             return
-            else:
-                raise FileNotFoundError("ERROR: Could not find {0} file in {1}. The program will now exit.".format(self._file_type, loc))
+            raise FileNotFoundError("ERROR: Could not find {0} file in \"{1}\".".format(self._file_type, loc))
         except FileNotFoundError as fnfe:
-            print(fnfe)
+            print_err(fnfe)
             if type == "config":
                 self._file = None
             else:
                 if should_exit:
+                    print_err("The program will now exit.")
                     exit(1)
 
-    def _validate_file(self, file, should_exit):
+    def _validate_file(self, file: str, should_exit: bool) -> None:
         exec_check = None
         if self._file_type == "executable":
             if self._os_name == "Windows" and file.suffix == ".exe":
@@ -147,25 +143,30 @@ class VMAF_File_Handler:
                             self._file = str(file)
                             return
 
-        if should_exit:
+        try:
             if self._file_type == "config":
-                msg = "WARNING: Could not find any config files in path \"{0}\". Generating default config."
+                msg = "WARNING: File \"{0}\" is not a config file."
                 msg = msg.format(file)
                 raise FileNotFoundError(msg)
             elif self._file_type == "log":
-                msg = "ERROR: Could not find any VMAF log files in path \"{0}\". The program will now exit."
+                msg = "WARNING: File \"{0}\" is not a valid VMAF log."
                 msg = msg.format(file)
                 raise FileNotFoundError(msg)
             elif self._file_type == "model":
                 msg = ""
                 if model_error_type is None:
-                    msg = "ERROR: Could not find any VMAF model files in path \"{0}\". The program will now exit."
+                    msg = "WARNING: File \"{0}\" is not a valid VMAF log."
                     msg = msg.format(file)
                 else:
-                    msg = "ERROR: VMAF model files in path \"{0}\" are not valid for VMAF version {1}. The program will now exit."
+                    msg = "WARNING: File \"{0}\" is not valid for VMAF version {1}."
                     msg = msg.format(file, self._vmaf)
                 raise FileNotFoundError(msg)
             elif self._file_type == "executable":
-                msg = "ERROR: Could not find any executables in path \"{0}\". The program will now exit."
+                msg = "WARNING: File \"{0}\" is not a valid executable.."
                 msg = msg.format(file)
                 raise FileNotFoundError(msg)
+        except FileNotFoundError as fnfe:
+            if should_exit:
+                print_err(fnfe)
+                print_err("The program will now exit.")
+                exit(1)
