@@ -13,12 +13,14 @@ VMAF Plotter works on a single FMAF log file at a time.
 # TODO
 1. Finish FFmpy handler class
 2. Allow VMAF Calculator to take a directory as an input for the "distorted" video files.
-3. Finish multiprocess handling of VMAF calculations.
-4. Finish multiprocess handling of VMAF plotting.
-5. Clean up, refactor, and comment code to be more human readable.
-6. Write test unit cases for validating program before release.
-7. Create setup script for easier installation.
-8. Develop Docker image
+3. Add logging messages to VMAF calculating.
+4. Finish multiprocess handling of VMAF calculations.
+5. Add logging messages to VMAF plotting.
+6. Finish multiprocess handling of VMAF plotting.
+7. Clean up, refactor, and comment code to be more human readable.
+8. Write test unit cases for validating program before release.
+9. Create setup script for easier installation.
+10. Develop Docker image
 
 There are two parts to this project:
 1. Calculating VMAF through the use of the FFmpeg program with the ability to run
