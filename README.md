@@ -4,24 +4,7 @@ This script is a combination of forking
 combining it with the live motion graphing from my own repository
 [HunterAP23/GameBench_Graph_Maker](https://github.com/HunterAP23/GameBench_Graph_Maker).
 
-# Status (03/22/2021)
-Last Update: 03/22/2021
-INCOMPLETE
-VMAF Calculator works with a single input of two files and a single output.
-VMAF Plotter works on a single FMAF log file at a time.
-
-# TODO
-1. Finish FFmpy handler class
-2. Allow VMAF Calculator to take a directory as an input for the "distorted" video files.
-3. Add logging messages to VMAF calculating.
-4. Finish multiprocess handling of VMAF calculations.
-5. Add logging messages to VMAF plotting.
-6. Finish multiprocess handling of VMAF plotting.
-7. Clean up, refactor, and comment code to be more human readable.
-8. Write test unit cases for validating program before release.
-9. Create setup script for easier installation.
-10. Develop Docker image
-
+## Summary
 There are two parts to this project:
 1. Calculating VMAF through the use of the FFmpeg program with the ability to run
 multiple instances at once to max out the speed of the calculations. VMAF scales
@@ -31,6 +14,64 @@ metrics include PSNR, SSIM, SSIM, and others that VMAF normally generates. The
 video file is a live playback of the values to be used in situations like
 benchmark videos.
 
+## Status (04/04/2021)
+WORKING BUT INCOMPLETE
+VMAF Calculator works with a single input of two files and a single output.
+VMAF Plotter works on a single VMAF log file at a time.
+
+### TODO
+1. [x] Finish FFmpy handler class
+2. [ ] Allow VMAF Calculator to take a directory as an input for the "distorted" video files.
+3. [ ] Add logging messages to VMAF calculating.
+4. [ ] Finish multiprocess handling of VMAF calculations.
+5. [ ] Add logging messages to VMAF plotting.
+6. [ ] Finish multiprocess handling of VMAF plotting.
+7. [ ] Clean up, refactor, and comment code to be more human readable.
+8. [ ] Write test unit cases for validating program before release.
+9. [ ] Create setup script for easier installation.
+10. [ ] Develop Docker image
+
+## Requirements
+Python 3 (preferably 3.9)
+FFmpeg
+
+Install them with either of the following commands:
+```
+pip install -r requirements.txt
+```
+OR
+```
+python -m pip install -r requirements.txt
+```
+
+If you instead want to keep your global python packages tidy, you can use the
+`pipenv` python package.
+1. Install `pipenv` with:
+```
+pip install pipenv
+```
+OR
+```
+python -m pip install pipenv
+```
+2. Create a virtual environment and install the required packages to it.
+```
+pipenv update
+```
+3. Before running any of the programs, you'll have to enter the pipenv
+environment like so:
+```
+pipenv shell
+```
+Then you can run the commands for the programs in this project.
+
+Alternatively, you can run the programs directly without entering the pipenv
+environment. For example, if you wanted to get the help info for the VMAF
+Calculator program, you can do so like this:
+```
+pipenv run python vmaf_calculator.py -h
+```
+
 # VMAF Calculator
 Using FFmpeg, the script calculates the VMAF score as well as related metrics
 like PSNR, SSIM, and MS_SSIM. It also attempts to utilize multithreading where
@@ -38,13 +79,14 @@ available, with the main focus being able to run multiple VMAF calculations
 simultaneously to maximize the speed of all calculations.
 
 ### Usage
-```bash
-usage: vmaf_calculator.py [-f FFMPEG] [-t THREADS PER PROCESS]
-                          [-p PROCESSES] [-u] [-v {1,2}] [--psnr] [--ssim] [--ms-ssim] [-m MODEL] [-l {xml,csv,json}] [-n LOG_PATH]
-                          [-c CONFIG] [-h]
-                          distorted reference
+```
+usage: vmaf_calculator.py [-f FFMPEG] [-t THREADS] [-p PROCESSES] [-u] [-v {1,2}] [--psnr] [--ssim] [--ms-ssim] [--subsamples SUBSAMPLES] [-m MODEL] [-l {xml,csv,json}] [-n LOG_PATH] [-c CONFIG] [-h] distorted reference
 
 Multithreaded VMAF log file generator through FFmpeg.
+```
+
+### Options
+```
 The 1st required argument is the Distorted Video file.
 The 2nd required argument is the Reference Video file that the Distorted Video is compared against.
 
@@ -55,9 +97,9 @@ positional arguments:
 Optional arguments:
   -f FFMPEG, --ffmpeg FFMPEG
                         Specify the path to the FFmpeg executable (Default is "ffmpeg" which assumes that FFmpeg is part of your "Path" environment variable).
-                        The path must either point to the executable itself, or to the directory that contains the exectuable named "ffmpeg".
+                        The path must either point to the executable itself, or to the directory that contains the executable named "ffmpeg".
 
-  -t THREADS PER PROCESS, --threads THREADS PER PROCESS
+  -t THREADS, --threads THREADS
                         Specify number of threads to be used for each process (Default is 0 for "autodetect").
                         Specifying more threads than there are available will clamp the value down to 1 thread for safety purposes.
                         A single VMAF process will effectively max out at 12 threads - any more will provide little to no performance increase.
@@ -83,6 +125,13 @@ Optional arguments:
 
   --ms-ssim             Enable calculating MS-SSIM values (Default is off).
 
+  --subsamples SUBSAMPLES
+                        Specify the number of subsamples to use (default 1).
+                        This value only samples the VMAF and related metrics' values once every N frames.
+                        Higher values may improve calculation performance at the cost of less accurate results.
+
+                        This variable corresponds to VMAF's "n_subsample" variable.
+
   -m MODEL, --model MODEL
                         Specify the VMAF model file to use (Default is "vmaf_v0.6.1.pkl" for VMAF version 1 and "vmaf_v0.6.1.json" for VMAF version 2).
                         By default, this variable assumes the model file is located in the same location as this script.
@@ -101,9 +150,10 @@ Miscellaneous arguments:
   -h, --help            Show this help message and exit.
 ```
 
-###
+### Examples
 
-# VMAF Plotter
+
+## VMAF Plotter
 This will generate a single image to show the VMAF values for the inputted VMAF
 file overall, and generate a video file that is animated to move through the
 graph, both at the same framerate (as reported by the source VMAF report) and
@@ -111,7 +161,7 @@ has a transparent background.
 ![](graph_examples/plot_720p_default.svg)
 
 ### Usage
-```bash
+```
 usage: vmaf_plotter.py [-o OUTPUT] [-l {default,min,zero,custom}] [-c CUSTOM] [-r {720,1080,1440,4k}] [-d DPI] [-v {1,2}] [-f FPS] [-h] VMAF_FILE
 ```
 
@@ -121,7 +171,7 @@ This creates an image and video with 1440p resolution, 24fps, and the y-axis ran
 python plot_vmaf.py vmaf.xml -o plot.svg -r 1440p -f 24 -l zero
 ```
 
-## Options
+### Options
 ```
 positional arguments:
   VMAF_FILE             VMAF report file.
@@ -158,23 +208,8 @@ Miscellaneous arguments:
   -h, --help            Show this help message and exit.
 ```
 
-## Requirements
-Python 3 (preferably 3.9)
-Matplotlib
-Numpy
-FFMpeg
 
-Install them with either of the following commands:
-```
-pip install -r requirements.txt
-```
-OR
-```
-python -m pip install -r requirements.txt
-```
-
-
-# Quality & Performance Considerations
+### Quality & Performance Considerations
 The default resolution for the graph image and video is 1080p.
 For the image, resolution is the only factor in the file's quality. DPI has no effect on the image file.
 
@@ -184,7 +219,8 @@ This does not mean that picking a DPI for a 720p video will make it look the sam
 The lines, axes, and graph labels will all be scaled differently depending on the resolution.
 
 
-For example, using an AMD Ryzen 3700X, these were my encoding times for a 521 frame some resolutions and DPI values:
+For example, using an AMD Ryzen 3700X, these were my encoding times for a 521
+frame video with different resolutions and DPI values:
 Resolution | DPI | Effective Video Resolution | Encode Time
 720p | 100 | 1280x720 | 0H : 0M : 6.63S
 720p | 300 | 3840x2160p | 0H : 0M : 36.16S

@@ -72,6 +72,12 @@ class VMAF_Calculator:
         ms_ssim_help = "Enable calculating MS-SSIM values (Default is off).\n\n"
         optional_args.add_argument("--ms-ssim", dest="ms_ssim", action="store_true", help=ms_ssim_help)
 
+        subsamples_help = "Specify the number of subsamples to use (default 1).\n"
+        subsamples_help += "This value only samples the VMAF and related metrics' values once every N frames.\n"
+        subsamples_help += "Higher values may improve calculation performance at the cost of less accurate results.\n\n"
+        subsamples_help += "This variable corresponds to VMAF's \"n_subsample\" variable.\n\n"
+        optional_args.add_argument("--subsamples", dest="subsamples", help=subsamples_help)
+
         model_help = "Specify the VMAF model file to use (Default is \"vmaf_v0.6.1.pkl\" for VMAF version 1 and \"vmaf_v0.6.1.json\" for VMAF version 2).\n"
         model_help += "By default, this variable assumes the model file is located in the same location as this script.\n\n"
         optional_args.add_argument("-m", "--model", dest="model", help=model_help)
@@ -81,6 +87,7 @@ class VMAF_Calculator:
 
         log_path_help = "Specify the VMAF log path and file name (Default is \"vmaf\").\n\n"
         optional_args.add_argument("-n", "--log-name", dest="log_path", help=log_path_help)
+
 
         config_help = "Specify a config file to import multiple settings with (Default is \"config.ini\" in the same folder as the script).\n"
         config_help += "Values specified with the arguments above will override the settings in the config file."
@@ -122,9 +129,8 @@ class VMAF_Calculator:
             }
         }
 
-        cmd = self._ffmpy.run_command(**cmd_args, get_cmd=True)
+        # cmd = self._ffmpy.run_command(**cmd_args, get_cmd=True)
 
-        print("cmd: {}".format(cmd))
         out, err = self._ffmpy.run_command(**cmd_args)
 
         # for line in out.decode("utf-8").split("\n"):

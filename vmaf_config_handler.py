@@ -59,6 +59,7 @@ class VMAF_Config_Handler(VMAF_File_Handler):
                 "psnr": False,
                 "ssim": False,
                 "ms_ssim": False,
+                "subsamples": 1,
                 "model": "vmaf_v0.6.1",
                 "log_path": "vmaf",
                 "log_format": "xml",
@@ -268,15 +269,13 @@ class VMAF_Config_Handler(VMAF_File_Handler):
             else:
                 self._config_data["General"]["ffmpeg"] = VMAF_File_Handler(self._config_data["General"]["ffmpeg"], file_type="executable", os_name=self._mp_handler.get_sys_platform()).get_file()
 
-            print("ffmpeg: {}".format(self._config_data["General"]["ffmpeg"]))
-
             try:
                 self._ffmpy = FFmpy_Handler(self._config_data["General"]["ffmpeg"])
 
-                out, err = self._ffmpy.run_command(ff_globals="-h")
+                has_vmaf = self._ffmpy.search_lib("libvmaf")
 
                 if self._program == "Calculations":
-                    if "--enable-libvmaf" in out.decode("utf-8"):
+                    if not has_vmaf:
                         msg = "FFmpeg is not built with VMAF support (\"--enable-libvmaf\"). The program can not continue and will now exit."
                         raise OSError(msg)
                 msg = "FFmpeg executable \"{}\" is valid and contains the libvmaf library. Continuing..."

@@ -18,6 +18,7 @@ class FFmpy_Handler_Exception(ffmpy.FFExecutableNotFoundError):
 class FFmpy_Handler:
     def __init__(self, executable: str):
         self._executable = None
+        self._libraries = []
         # VMAF_File_Handler.__init__(
         #     file=executable,
         #     file_type="config",
@@ -26,6 +27,8 @@ class FFmpy_Handler:
         #     program="Calculations"
         # )
         self._validate_ffmpeg(executable)
+        self._get_libs()
+
 
     def run_command(self, executable: Optional[str] = None, ff_globals: Optional[str] = None, ff_inputs: Optional[dict] = None, ff_outputs: Optional[dict] = None, get_cmd: Optional[bool] = False) -> Union[str, tuple]:
         ff_exec = None
@@ -60,18 +63,27 @@ class FFmpy_Handler:
             exit(1)
 
     def _validate_ffmpeg(self, executable: str) -> bool:
-        self.run_command(executable, ff_globals="-h", ff_outputs={"-": "-f null"})
+        self.run_command(executable, ff_globals="-h -hide_banner", ff_outputs={"-": "-f null"})
         self._executable = executable
 
+    def _get_libs(self):
+        libs_out, libs_err = self.run_command(ff_globals="-version")
+        libs_out_str = libs_out.decode("utf-8")
+
+        for line in libs_out_str.split("\n"):
+            temp = line.split(" --")
+            for i in temp:
+                self._libraries.append(i)
+
+
     def search_lib(self, lib: str) -> bool:
-        out, err = self.run_command(ff_globals="-h")
-        check = ""
-        if "--enable-" in lib:
+        lib = lib.replace("--", "")
+        if "enable-" in lib:
             check = lib
         else:
-            check = "--enable-{lib}"
+            check = "enable-{}".format(lib)
 
-        if check in err.decode("utf-8"):
+        if check in self._libraries:
             return True
         else:
             return False

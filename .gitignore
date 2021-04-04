@@ -128,6 +128,9 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+# pipenv's pipfile.lock should not be included
+Pipfile.lock
+
 # Video files
 *.mov
 *.webm
