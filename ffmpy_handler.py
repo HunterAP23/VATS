@@ -29,7 +29,6 @@ class FFmpy_Handler:
         self._validate_ffmpeg(executable)
         self._get_libs()
 
-
     def run_command(self, executable: Optional[str] = None, ff_globals: Optional[str] = None, ff_inputs: Optional[dict] = None, ff_outputs: Optional[dict] = None, get_cmd: Optional[bool] = False) -> Union[str, tuple]:
         ff_exec = None
 
@@ -74,7 +73,6 @@ class FFmpy_Handler:
             temp = line.split(" --")
             for i in temp:
                 self._libraries.append(i)
-
 
     def search_lib(self, lib: str) -> bool:
         lib = lib.replace("--", "")

@@ -88,6 +88,11 @@ class VMAF_Calculator:
         log_path_help = "Specify the VMAF log path and file name (Default is \"vmaf\").\n\n"
         optional_args.add_argument("-n", "--log-name", dest="log_path", help=log_path_help)
 
+        hwaccel_help = "Enable FFmpeg to automatically attempt to use hardware acceleration for video decoding (default is off).\n"
+        hwaccel_help += "Not specifying this option means FFmpeg will use only the CPU for video decoding.\n"
+        hwaccel_help += "Enabling this option means FFmpeg will use attempt to use the GPU for video decoding instead.\n"
+        hwaccel_help += "This could improve calculation speed, but your mileage may vary.\n\n"
+        optional_args.add_argument("--hwaccel", dest="hwaccel", action="store_true", help=hwaccel_help)
 
         config_help = "Specify a config file to import multiple settings with (Default is \"config.ini\" in the same folder as the script).\n"
         config_help += "Values specified with the arguments above will override the settings in the config file."
@@ -100,6 +105,8 @@ class VMAF_Calculator:
         return args
 
     def calculate_vmaf(self, distorted: str, reference: str) -> None:
+        msg = "Running VMAF calculation for between source {} and distorted {}"
+        print(msg.format(source, distorted))
         output_cmd = "-hide_banner -filter_complex "
 
         tmp_filter = "libvmaf=model_path={}".format(self._config["Calculations"]["model"])
@@ -112,6 +119,8 @@ class VMAF_Calculator:
             tmp_filter += ":ssim=1"
         if self._config["Calculations"]["ms_ssim"]:
             tmp_filter += ":ms_ssim=1"
+        if self._config["Calculations"]["subsamples"]:
+            tmp_filter += ":n_subsample={}".format(self._config["Calculations"]["subsamples"])
         tmp_filter += ":n_threads={}".format(self._config["Calculations"]["threads"])
 
         output_cmd += repr(tmp_filter)
@@ -119,10 +128,14 @@ class VMAF_Calculator:
         output_cmd += " -f null"
         output_cmd = output_cmd.replace(r"\\", "\\")
 
+        decode = "-threads {}".format(self._config["Calculations"]["threads"])
+        if self._config["Calculations"]["hwaccel"]:
+            decode =+ " -hwaccel auto"
+
         cmd_args = {
             "ff_inputs": {
-                distorted: None,
-                reference: None
+                distorted: decode,
+                reference: decode
             },
             "ff_outputs": {
                 "-": output_cmd

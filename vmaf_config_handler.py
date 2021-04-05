@@ -63,6 +63,7 @@ class VMAF_Config_Handler(VMAF_File_Handler):
                 "model": "vmaf_v0.6.1",
                 "log_path": "vmaf",
                 "log_format": "xml",
+                "hwaccel": False,
                 "threads": self._mp_handler.get_core_count(),
                 "processes": 1,
                 "use_remaining_threads": False
@@ -408,6 +409,12 @@ class VMAF_Config_Handler(VMAF_File_Handler):
 
             if self._args["ms_ssim"]:
                 self._config_data["Calculations"]["ms_ssim"] = self._args["ms_ssim"]
+
+            if self._args["subsamples"]:
+                self._config_data["Calculations"]["subsamples"] = self._args["subsamples"]
+
+            if self._args["hwaccel"]:
+                self._config_data["Calculations"]["hwaccel"] = self._args["hwaccel"]
 
             _validate_model(self)
 
