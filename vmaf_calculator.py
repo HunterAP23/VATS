@@ -105,8 +105,8 @@ class VMAF_Calculator:
         return args
 
     def calculate_vmaf(self, distorted: str, reference: str) -> None:
-        msg = "Running VMAF calculation for between source {} and distorted {}"
-        print(msg.format(source, distorted))
+        msg = "Running VMAF calculation for between reference {} and distorted {}"
+        print(msg.format(reference, distorted))
         output_cmd = "-hide_banner -filter_complex "
 
         tmp_filter = "libvmaf=model_path={}".format(self._config["Calculations"]["model"])
@@ -130,7 +130,7 @@ class VMAF_Calculator:
 
         decode = "-threads {}".format(self._config["Calculations"]["threads"])
         if self._config["Calculations"]["hwaccel"]:
-            decode =+ " -hwaccel auto"
+            decode += " -hwaccel auto"
 
         cmd_args = {
             "ff_inputs": {
