@@ -1,10 +1,10 @@
 import subprocess as sp
 
+import logging as lg
+
 # Variable typing
 from typing import Optional
 from typing import Union
-
-from HunterAP_Common import print_err
 
 import ffmpy
 
@@ -16,33 +16,34 @@ class FFmpy_Handler_Exception(ffmpy.FFExecutableNotFoundError):
 
 
 class FFmpy_Handler:
-    def __init__(self, executable: str):
-        self._executable = None
+    def __init__(self, executable_ffmpeg: str, log: lg.RootLogger):
+        self._executable_ffmpeg = None
         self._libraries = []
-        # VMAF_File_Handler.__init__(
+        self._log = log
+        # super.__init__(
         #     file=executable,
         #     file_type="config",
         #     ext="exe",
         #     os_name="Windows",
         #     program="Calculations"
         # )
-        self._validate_ffmpeg(executable)
+        self._validate_ffmpeg(executable_ffmpeg)
         self._get_libs()
 
     def run_command(self, executable: Optional[str] = None, ff_globals: Optional[str] = None, ff_inputs: Optional[dict] = None, ff_outputs: Optional[dict] = None, get_cmd: Optional[bool] = False) -> Union[str, tuple]:
         ff_exec = None
 
         try:
-            if self._executable is None:
+            if self._executable_ffmpeg is None:
                 if executable is None:
                     msg = "No FFmpeg executable defined. The program will now exit."
                     raise FileNotFoundError(msg)
                 else:
                     ff_exec = executable
             else:
-                ff_exec = self._executable
+                ff_exec = self._executable_ffmpeg
         except FileNotFoundError as fnfe:
-            print_err(fnfe)
+            self._log.critical(fnfe)
             exit(1)
 
         try:
@@ -58,28 +59,25 @@ class FFmpy_Handler:
             else:
                 return ff.run(stdout=sp.PIPE, stderr=sp.PIPE)
         except ffmpy.FFExecutableNotFoundError as ffenfe:
-            print_err(ffenfe)
+            self._log.critical(ffenfe)
             exit(1)
 
     def _validate_ffmpeg(self, executable: str) -> bool:
         self.run_command(executable, ff_globals="-h -hide_banner", ff_outputs={"-": "-f null"})
-        self._executable = executable
+        self._executable_ffmpeg = executable
 
     def _get_libs(self):
-        libs_out, libs_err = self.run_command(ff_globals="-version")
+        libs_out, libs_err = self.run_command(ff_globals="-buildconf")
         libs_out_str = libs_out.decode("utf-8")
 
         for line in libs_out_str.split("\n"):
-            temp = line.split(" --")
-            for i in temp:
-                self._libraries.append(i)
+            self._libraries.append(line.strip().replace("\r", ""))
 
     def search_lib(self, lib: str) -> bool:
-        lib = lib.replace("--", "")
-        if "enable-" in lib:
+        if "--enable-" in lib:
             check = lib
         else:
-            check = "enable-{}".format(lib)
+            check = "--enable-{}".format(lib)
 
         if check in self._libraries:
             return True

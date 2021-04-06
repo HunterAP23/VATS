@@ -13,13 +13,12 @@ import sys
 # Debugging related
 import errno
 import inspect
+import logging as lg
 import traceback
 
 # Miscellaneous
 from typing import Optional
 from typing import Union
-
-from HunterAP_Common import print_err
 
 
 class HunterAP_Process_Handler_Error(Exception):
@@ -27,7 +26,8 @@ class HunterAP_Process_Handler_Error(Exception):
 
 
 class HunterAP_Process_Handler:
-    def __init__(self, max_procs: Optional[int] = 1, max_threads: Optional[int] = 1, funcs: Optional[dict] = None):
+    def __init__(self, log: lg.RootLogger, max_procs: Optional[int] = 1, max_threads: Optional[int] = 1, funcs: Optional[dict] = None):
+        self._log = log
         self._pid = os.getpid()
         self._core_count = mp.cpu_count()
         self._usable_cores_count = None
@@ -98,7 +98,7 @@ class HunterAP_Process_Handler:
                 try:
                     self._pool_proc = mp.Pool(max_procs)
                 except Exception as e:
-                    print_err(e)
+                    self._log.error(e)
         else:
             if any(check) or max_procs >= self._usable_cores_count:
                 self._pool_proc = mp.Pool(self._usable_cores_count)
@@ -133,7 +133,7 @@ class HunterAP_Process_Handler:
                 msg = "{} is not a callable method and will be removed from the pool."
                 raise TypeError(msg.format(name))
         except TypeError as te:
-            print_err(te)
+            self._log.error(te)
             return False
 
     def _run_in_parallel(self, funcs: Union[dict, list, tuple], args: Union[dict, list, tuple], threads: int, sema: mp.Semaphore, rlock: mp.RLock):
@@ -149,7 +149,7 @@ class HunterAP_Process_Handler:
         #     try:
         #         p.join()
         #     except Exception as e:
-        #         print_err(e)
+        #         self._log.error(e)
         funcs_data = dict()
         try:
             if type(funcs) is dict:
@@ -173,7 +173,7 @@ class HunterAP_Process_Handler:
                     name = func.__name__
         except IndexError as ie:
             msg = "{}: There are no valid functons given from arguments {} and {}."
-            print_err(msg.format(ie, funcs, args))
+            self._log.critical(msg.format(ie, funcs, args))
             exit(1)
 
         arg = None
@@ -185,7 +185,7 @@ class HunterAP_Process_Handler:
         self._run_map(func)
 
 
-if __name__ == "__main__":
-    inst = HunterAP_Process_Handler()
-    for k, v in vars(inst).items():
-        print("{}: {}".format(k, v))
+# if __name__ == "__main__":
+#     inst = HunterAP_Process_Handler()
+#     for k, v in vars(inst).items():
+#         print("{}: {}".format(k, v))

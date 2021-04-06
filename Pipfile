@@ -5,8 +5,8 @@ name = "pypi"
 
 [packages]
 ffmpy = ">=0.3.0"
-matplotlib = ">=3.3.4"
-numpy = ">=1.20.1"
+matplotlib = ">=3.4.1"
+numpy = ">=1.20.2"
 pywin32 = {version = ">=300", sys_platform = "== 'win32'"}
 
 [dev-packages]

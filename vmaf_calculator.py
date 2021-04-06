@@ -4,23 +4,35 @@ import argparse as argp
 from ffmpy_handler import FFmpy_Handler
 from vmaf_config_handler import VMAF_Config_Handler
 from HunterAP_Process_Handler import HunterAP_Process_Handler as proc_handler
+from HunterAP_Logger import HunterAP_Logger
 
 
 class VMAF_Calculator:
     """Calculates VMAF and other visual score metric values using FFmpeg with multithreading and multiprocessing."""
     def __init__(self):
         """Run general class creation fnctions and begin calculating VMAF"""
-        self._mp_handler = proc_handler()
 
         # Parse arguments given by the user, if any
         self._args = vars(self.parse_arguments())
 
-        # Create a Config_Reader object with the config file.
-        self._config = VMAF_Config_Handler(args=self._args, mp_handler=self._mp_handler).get_config_data()
+        self._log = HunterAP_Logger(self._args["debug"])
 
-        self._ffmpy = FFmpy_Handler(self._config["General"]["ffmpeg"])
+        self._mp_handler = proc_handler(self._log)
+
+        # Create a Config_Reader object with the config file.
+        self._config = VMAF_Config_Handler(
+            log=self._log,
+            args=self._args,
+            mp_handler=self._mp_handler
+        ).get_config_data()
+
+        self._ffmpy = FFmpy_Handler(
+            self._config["General"]["ffmpeg"],
+            log=self._log
+        )
 
         self._mp_handler = proc_handler(
+            log=self._log,
             max_procs=self._config["Calculations"]["processes"],
             max_threads=self._config["Calculations"]["threads"]
         )
@@ -100,13 +112,14 @@ class VMAF_Calculator:
 
         misc_args = parser.add_argument_group("Miscellaneous arguments")
         misc_args.add_argument("-h", "--help", action="help", default=argp.SUPPRESS, help="Show this help message and exit.\n")
+        misc_args.add_argument("-d", "--debug", dest="debug", action="store_true", help="Show logging messages for debugging pruposes.\n")
 
         args = parser.parse_args()
         return args
 
     def calculate_vmaf(self, distorted: str, reference: str) -> None:
         msg = "Running VMAF calculation for between reference {} and distorted {}"
-        print(msg.format(reference, distorted))
+        self._log.info(msg.format(reference, distorted))
         output_cmd = "-hide_banner -filter_complex "
 
         tmp_filter = "libvmaf=model_path={}".format(self._config["Calculations"]["model"])
@@ -151,7 +164,7 @@ class VMAF_Calculator:
 
         for line in err.decode("utf-8").split("\n"):
             if "VMAF score" in line:
-                print(line)
+                self._log.info(line.strip().split("]")[1])
 
 
 if __name__ == "__main__":
