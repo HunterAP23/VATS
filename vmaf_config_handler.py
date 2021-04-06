@@ -46,9 +46,6 @@ class VMAF_Config_Handler(VMAF_File_Handler):
 
         self._validate_options(self._file)
 
-    def get_config_data(self) -> dict:
-        return self._config_data
-
     def _generate_default_config_dict(self) -> dict:
         config_dict = {
             "General": {
@@ -390,3 +387,6 @@ class VMAF_Config_Handler(VMAF_File_Handler):
             _validate_model(self)
 
             _validate_log(self)
+
+    def get_config_data(self) -> dict:
+        return self._config_data

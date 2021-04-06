@@ -30,6 +30,17 @@ class FFmpy_Handler:
         self._validate_ffmpeg(executable_ffmpeg)
         self._get_libs()
 
+    def _validate_ffmpeg(self, executable: str) -> bool:
+        self.run_command(executable, ff_globals="-h -hide_banner", ff_outputs={"-": "-f null"})
+        self._executable_ffmpeg = executable
+
+    def _get_libs(self):
+        libs_out, libs_err = self.run_command(ff_globals="-buildconf")
+        libs_out_str = libs_out.decode("utf-8")
+
+        for line in libs_out_str.split("\n"):
+            self._libraries.append(line.strip().replace("\r", ""))
+
     def run_command(self, executable: Optional[str] = None, ff_globals: Optional[str] = None, ff_inputs: Optional[dict] = None, ff_outputs: Optional[dict] = None, get_cmd: Optional[bool] = False) -> Union[str, tuple]:
         ff_exec = None
 
@@ -61,17 +72,6 @@ class FFmpy_Handler:
         except ffmpy.FFExecutableNotFoundError as ffenfe:
             self._log.critical(ffenfe)
             exit(1)
-
-    def _validate_ffmpeg(self, executable: str) -> bool:
-        self.run_command(executable, ff_globals="-h -hide_banner", ff_outputs={"-": "-f null"})
-        self._executable_ffmpeg = executable
-
-    def _get_libs(self):
-        libs_out, libs_err = self.run_command(ff_globals="-buildconf")
-        libs_out_str = libs_out.decode("utf-8")
-
-        for line in libs_out_str.split("\n"):
-            self._libraries.append(line.strip().replace("\r", ""))
 
     def search_lib(self, lib: str) -> bool:
         if "--enable-" in lib:

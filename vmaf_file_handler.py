@@ -89,9 +89,6 @@ class VMAF_File_Handler:
                 self._log.critical("The program will now exit.")
                 exit(1)
 
-    def get_file(self) -> str:
-        return self._file
-
     def _find_file(self, loc: str, filename: str = "", should_exit: Optional[bool] = False, is_env: Optional[bool] = False) -> None:
         try:
             if loc.exists():
@@ -101,11 +98,11 @@ class VMAF_File_Handler:
                             self._validate_file(entry, should_exit)
                         else:
                             return
-            if not is_env:
+            if not is_env or self._log.get_debug():
                 msg = "Could not find {0} file in \"{1}\"."
                 raise FileNotFoundError(msg.format(self._file_type, loc))
         except FileNotFoundError as fnfe:
-            self._log.error(fnfe)
+            self._log.warning(fnfe)
             if type == "config":
                 self._file = None
             else:
@@ -180,5 +177,6 @@ class VMAF_File_Handler:
                 self._log.critical(fnfe)
                 self._log.critical("The program will now exit.")
                 exit(1)
-            elif self._log.get_debug():
-                self._log.debug(fnfe)
+
+    def get_file(self) -> str:
+        return self._file

@@ -13,7 +13,7 @@ class VMAF_Calculator:
         """Run general class creation fnctions and begin calculating VMAF"""
 
         # Parse arguments given by the user, if any
-        self._args = vars(self.parse_arguments())
+        self._args = vars(self._parse_arguments())
 
         self._log = HunterAP_Logger(self._args["debug"])
 
@@ -39,7 +39,7 @@ class VMAF_Calculator:
 
         self.calculate_vmaf(self._args["distorted"], self._args["reference"])
 
-    def parse_arguments(self) -> argp.Namespace:
+    def _parse_arguments(self) -> argp.Namespace:
         """Parse user given arguments for calculating VMAF."""
         main_help = "Multithreaded VMAF log file generator through FFmpeg.\n"
         main_help += "The 1st required argument is the Distorted Video file.\n"
@@ -155,7 +155,10 @@ class VMAF_Calculator:
             }
         }
 
-        # cmd = self._ffmpy.run_command(**cmd_args, get_cmd=True)
+        cmd = self._ffmpy.run_command(**cmd_args, get_cmd=True)
+
+        self._log.info("Running FFmpeg command: {}".format(cmd))
+        exit()
 
         out, err = self._ffmpy.run_command(**cmd_args)
 
@@ -164,7 +167,7 @@ class VMAF_Calculator:
 
         for line in err.decode("utf-8").split("\n"):
             if "VMAF score" in line:
-                self._log.info(line.strip().split("]")[1])
+                self._log.info(line.split("]")[1].strip())
 
 
 if __name__ == "__main__":

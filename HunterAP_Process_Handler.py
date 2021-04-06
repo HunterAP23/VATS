@@ -1,5 +1,7 @@
 # Process related
+import asyncio
 import multiprocessing as mp
+import multiprocessing.dummy as mpd
 import subprocess as sp
 
 # Scheduling related
@@ -26,11 +28,13 @@ class HunterAP_Process_Handler_Error(Exception):
 
 
 class HunterAP_Process_Handler:
-    def __init__(self, log: lg.RootLogger, max_procs: Optional[int] = 1, max_threads: Optional[int] = 1, funcs: Optional[dict] = None):
+    def __init__(self, log: lg.RootLogger, max_procs: Optional[int] = 1, max_threads: Optional[int] = 1, funcs: Optional[Union[dict, list, tuple]] = None):
         self._log = log
         self._pid = os.getpid()
         self._core_count = mp.cpu_count()
+        self._usable_cores = None
         self._usable_cores_count = None
+        self.funcs = funcs
 
         if sys.platform.startswith("freebsd"):
             self._sys_platform = "FreeBSD"
@@ -105,27 +109,7 @@ class HunterAP_Process_Handler:
             elif max_procs < self._usable_cores_count:
                 self._pool_proc = mp.Pool(max_procs)
 
-    def get_pid(self):
-        return self._pid
-
-    def get_affinity(self):
-        return self._usable_cores
-
-    def get_sys_platform(self):
-        return self._sys_platform
-
-    def get_core_count(self):
-        return self._core_count
-
-    def _time_function(self, func, args: Union[dict, list, tuple], sema, rlock):
-        sema.acquire()
-        func(**args, sema=sema)
-        sema.release()
-
-    def _run_map(self, func, args, name: Optional[str]):
-        return
-
-    def test_callable(self, name, method):
+    def _test_callable(self, name, method):
         try:
             if callable(method):
                 return True
@@ -155,14 +139,14 @@ class HunterAP_Process_Handler:
             if type(funcs) is dict:
                 if len(funcs) == 1:
                     (name, func), = funcs.items()
-                    if self.test_callable(name, func):
+                    if self._test_callable(name, func):
                         funcs_data[name] = dict()
                         funcs_data[name]["Function"] = func
                     else:
                         raise IndexError()
                 else:
                     for name, func in funcs.items():
-                        if self.test_callable(name, func):
+                        if self._test_callable(name, func):
                             funcs_data[name] = dict()
                             funcs_data[name]["Function"] = func
                     if len(funcs_data) == 0:
@@ -183,6 +167,52 @@ class HunterAP_Process_Handler:
             arg = args[func.__name__]
 
         self._run_map(func)
+
+    def _run_map(self, func, args, name: Optional[str]):
+        return
+
+    def get_pid(self) -> int:
+        return self._pid
+
+    def get_affinity(self) -> Union[list, tuple]:
+        return self._usable_cores
+
+    def set_affinity(self, affinity: Union[list, tuple]) -> bool:
+        # Remove duplicate entries
+        new_affinity = set(affinity)
+
+        # Make sure there are elements
+        if len(new_affinity) == 0:
+            return False
+
+        # Get rid of any elements greater than the highest core number
+        while max(new_affinity) > max(self._usable_cores):
+            new_affinity.discard(max(new_affinity))
+
+        # Make sure there are no entries less than 0
+        while 0 in new_affinity:
+            new_affinity.discard(min(new_affinity))
+
+        # Make sure we still have elements after removing the above values
+        if len(new_affinity) == 0:
+            return False
+
+            self._usable_cores = tuple(new_affinity)
+            return True
+
+    def get_sys_platform(self):
+        return self._sys_platform
+
+    def get_core_count(self):
+        return self._core_count
+
+    def _time_function(self, func, args: Union[dict, list, tuple], sema, rlock):
+        sema.acquire()
+        func(**args, sema=sema)
+        sema.release()
+
+    def get_func(self):
+        return
 
 
 # if __name__ == "__main__":
