@@ -28,13 +28,17 @@ class HunterAP_Process_Handler_Error(Exception):
 
 
 class HunterAP_Process_Handler:
-    def __init__(self, log: lg.RootLogger, max_procs: Optional[int] = 1, max_threads: Optional[int] = 1, funcs: Optional[Union[dict, list, tuple]] = None):
+    def __init__(self, log: lg.RootLogger, max_procs: Optional[int] = 1, max_threads: Optional[int] = 1, funcs: Optional[Union[dict, list, set, tuple]] = None, args: Optional[Union[dict, list, set, tuple]] = None):
         self._log = log
+        self._max_threads = max_threads
+        self._max_procs = max_procs
+        self._funcs = funcs
+        self._args = args
+
         self._pid = os.getpid()
         self._core_count = mp.cpu_count()
         self._usable_cores = None
         self._usable_cores_count = None
-        self.funcs = funcs
 
         if sys.platform.startswith("freebsd"):
             self._sys_platform = "FreeBSD"
@@ -171,6 +175,11 @@ class HunterAP_Process_Handler:
     def _run_map(self, func, args, name: Optional[str]):
         return
 
+    def _time_function(self, func, args: Union[dict, list, set, tuple], sema, rlock):
+        sema.acquire()
+        func(**args, sema=sema)
+        sema.release()
+
     def get_pid(self) -> int:
         return self._pid
 
@@ -200,19 +209,37 @@ class HunterAP_Process_Handler:
             self._usable_cores = tuple(new_affinity)
             return True
 
-    def get_sys_platform(self):
+    def get_sys_platform(self) -> str:
         return self._sys_platform
 
-    def get_core_count(self):
+    def get_core_count(self) -> int:
         return self._core_count
 
-    def _time_function(self, func, args: Union[dict, list, tuple], sema, rlock):
-        sema.acquire()
-        func(**args, sema=sema)
-        sema.release()
+    def get_threads(self) -> int:
+        return self._max_threads
 
-    def get_func(self):
-        return
+    def set_threads(self, threads: int) -> bool:
+            return self._max_threads
+
+    def get_args(self):
+        return self._args
+
+    def set_args(self, args: Union[dict, list, set, tuple]) -> bool:
+        return True
+
+    def get_funcs(self):
+        return self._funcs
+
+    def set_funcs(self, funcs: Union[dict, list, set, tuple]) -> bool:
+        if type(funcs) in (list, tuple):
+            self._funcs = set()
+        return True
+
+    def get_args(self):
+        return self._args
+
+    def set_args(self, args: Union[dict, list, set, tuple]) -> bool:
+        return True
 
 
 # if __name__ == "__main__":

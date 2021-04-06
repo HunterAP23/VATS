@@ -81,8 +81,6 @@ class Report_Handler(File_Handler):
 
         frame_level = -1
         for child in root:
-            # if str(child.attrib)
-
             if str(child.attrib) != "frames":
                 frame_level += 1
 

@@ -15,8 +15,10 @@ class VMAF_Calculator:
         # Parse arguments given by the user, if any
         self._args = vars(self._parse_arguments())
 
+        # Create loggerr
         self._log = HunterAP_Logger(self._args["debug"])
 
+        # Create multi-process/thread handler
         self._mp_handler = proc_handler(self._log)
 
         # Create a Config_Reader object with the config file.
@@ -31,11 +33,13 @@ class VMAF_Calculator:
             log=self._log
         )
 
-        self._mp_handler = proc_handler(
-            log=self._log,
-            max_procs=self._config["Calculations"]["processes"],
-            max_threads=self._config["Calculations"]["threads"]
-        )
+        # self._mp_handler = proc_handler(
+        #     log=self._log,
+        #     max_procs=self._config["Calculations"]["processes"],
+        #     max_threads=self._config["Calculations"]["threads"]
+        # )
+        self._mp_handler.set_procs(self._config["Calculations"]["processes"])
+        self._mp_handler.set_threads(self._config["Calculations"]["threads"])
 
         self.calculate_vmaf(self._args["distorted"], self._args["reference"])
 
