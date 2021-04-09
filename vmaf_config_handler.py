@@ -61,7 +61,7 @@ class VMAF_Config_Handler(VMAF_File_Handler):
                 "log_path": "vmaf",
                 "log_format": "xml",
                 "hwaccel": False,
-                "threads": self._mp_handler.get_core_count(),
+                "threads": self._mp_handler.get_cores_count(),
                 "processes": 1,
                 "use_remaining_threads": False
             },
@@ -69,7 +69,7 @@ class VMAF_Config_Handler(VMAF_File_Handler):
                 "output": "vmaf",
                 "lower_boundary": "default",
                 "custom": 0,
-                "threads": self._mp_handler.get_core_count(),
+                "threads": self._mp_handler.get_cores_count(),
                 "processes": 1,
                 "use_remaining_threads": False
             },
@@ -175,29 +175,32 @@ class VMAF_Config_Handler(VMAF_File_Handler):
             elif cause == "Config file":
                 which_dict = self._config_data[self._program]
 
-            self._log.error(msg.format(cause, which_dict[var_type], var_type, self._mp_handler.get_core_count()))
+            self._log.error(msg.format(cause, which_dict[var_type], var_type, self._mp_handler.get_cores_count()))
 
         def _validate_mp(self, var_type: str = "thread"):
             self._log.info("Validating {} count...".format(var_type))
             type_plural = None
+            func = None
             if var_type == "thread":
                 type_plural = "threads"
+                func = self._mp_handler.set_threads
             else:
                 type_plural = "processes"
+                func = self._mp_handler.set_procs
 
             try:
                 if self._args[type_plural]:
-                    if self._args[type_plural] > self._mp_handler.get_core_count():
+                    if not func(self._args[type_plural]):
                         _print_mp_err(self, var_type=type_plural, cause="User")
                         msg = "Checking config file for specified {} count."
                         self._log.error(msg.format(var_type))
                         raise HunterAP_Process_Handler_Error()
-                    else:
-                        self._config_data[self._program][type_plural] = self._args[type_plural]
+                else:
+                    self._config_data[self._program][type_plural] = self._args[type_plural]
                 else:
                     raise HunterAP_Process_Handler_Error()
             except HunterAP_Process_Handler_Error:
-                if int(self._config_data[self._program][type_plural]) > self._mp_handler.get_core_count():
+                if int(self._config_data[self._program][type_plural]) > self._mp_handler.get_cores_count():
                     _print_mp_err(self, var_type=type_plural, cause="Config file")
                     msg = "Defaulting to 1 {}."
                     self._log.error(msg.format(var_type))
@@ -207,17 +210,17 @@ class VMAF_Config_Handler(VMAF_File_Handler):
             self._log.info("Validating total process count...")
             total = int(self._config_data[self._program]["threads"]) * int(self._config_data[self._program]["processes"])
             try:
-                if total > self._mp_handler.get_core_count():
+                if total > self._mp_handler.get_cores_count():
                     msg = "Can not run {0} processes with {1} threads per process as that exceeds the number of threads in the system ({2} threads). Limiting processes down to allow as many processes as possible with {1} threads per process."
-                    raise HunterAP_Process_Handler_Error(msg.format(self._config_data[self._program]["processes"], self._config_data[self._program]["threads"], self._mp_handler.get_core_count()))
+                    raise HunterAP_Process_Handler_Error(msg.format(self._config_data[self._program]["processes"], self._config_data[self._program]["threads"], self._mp_handler.get_cores_count()))
                 else:
                     msg = "Running {0} processes with {1} threads per process. Continuing..."
                     self._log.info(msg.format(self._config_data[self._program]["processes"], self._config_data[self._program]["threads"]))
             except HunterAP_Process_Handler_Error as hap_phe:
                 self._log.error(hap_phe)
-                processes = math.floor(self._mp_handler.get_core_count() / int(self._config_data[self._program]["threads"]))
+                processes = math.floor(self._mp_handler.get_cores_count() / int(self._config_data[self._program]["threads"]))
                 total_threads = self._config_data[self._program]["threads"] * processes
-                rem_threads = self._mp_handler.get_core_count() - total_threads
+                rem_threads = self._mp_handler.get_cores_count() - total_threads
                 msg = "The program will run {0} processes instead of {1}, with {2} threads per process for a total of {3} total threads in use, with {4} threads remaining unused."
                 self._log.error(msg.format(processes, self._config_data[self._program]["processes"], self._config_data[self._program]["threads"], total_threads, rem_threads))
                 self._config_data[self._program]["processes"] = processes

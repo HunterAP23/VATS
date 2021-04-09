@@ -14,27 +14,15 @@ metrics include PSNR, SSIM, SSIM, and others that VMAF normally generates. The
 video file is a live playback of the values to be used in situations like
 benchmark videos.
 
-## Status (04/04/2021)
-WORKING BUT INCOMPLETE
-VMAF Calculator works with a single input of two files and a single output.
-VMAF Plotter works on a single VMAF log file at a time.
-
-### TODO
-1. [x] Finish FFmpy handler class
-2. [ ] Allow VMAF Calculator to take a directory as an input for the "distorted" video files.
-3. [ ] Add logging messages to VMAF calculating.
-4. [ ] Finish multiprocess handling of VMAF calculations.
-5. [ ] Add logging messages to VMAF plotting.
-6. [ ] Finish multiprocess handling of VMAF plotting.
-7. [ ] Clean up, refactor, and comment code to be more human readable.
-8. [ ] Write test unit cases for validating program before release.
-9. [ ] Create setup script for easier installation.
-10. [ ] Develop Docker image
+## TODO
+Please look at the (TODO.md)[https://github.com/HunterAP23/VMAF-Over-Time/blob/master/TODO.md] file for the current status of the
+project and what tasks are left to be done.
 
 ## Requirements
-Python 3 (preferably 3.9)
+Python 3.8 or newer<br>
 FFmpeg
 
+### Normal Setup
 Install them with either of the following commands:
 ```
 pip install -r requirements.txt
@@ -44,6 +32,7 @@ OR
 python -m pip install -r requirements.txt
 ```
 
+### Advanced Preferred Setup
 If you instead want to keep your global python packages tidy, you can use the
 `pipenv` python package.
 1. Install `pipenv` with:
