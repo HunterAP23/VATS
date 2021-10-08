@@ -23,11 +23,13 @@
         - Checking if FFMPEG is working through ffmpy module
         - Reading/writing the config file.
 - [ ] Create priority queue for calculations, prioritizing finishing all models for a single distorted file first before moving on to another distorted file. (Priority: Low)
+    - Might not be necessary
 - [ ] Utilize logging. (Priority: Medium)
 - [ ] Utilize `amped` module. (Priority: Medium)
 
 ## Plotter
-- [ ] Grab all reports from folders ending in "_results" and use that as the name for the file. Use this file name to aggregate data by listing the (mean, median, std, % lows) for each model use on that distorted file (IE: distortedname_model_vmaf_mean) (Priority: High)
+- [ ] Grab all reports from folders ending in "_results" and use that as the name for the aggregate file.
+    - Use this file to aggregate data by listing the (mean, median, std, % lows) for each model used on the distorted file (IE: distortedname_model_vmaf_mean) (Priority: High)
 - [ ] Aggregate data for each distorted file. Rank each metric for each model in one sheet, and rank the average score for each metric between all models in another sheet (Priority: Medium)
 - [ ] Add stats for (Priority: Medium):
     - [ ] Unbiased Variance (pandas.DataFrame.var)

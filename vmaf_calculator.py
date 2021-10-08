@@ -231,7 +231,7 @@ if __name__ == "__main__":
     # Beginning of libvmaf filter
     for dist, models in io.items():
         for model in models.keys():
-            if io[dist][model]["status"] != "DONE":
+            if io[dist][model]["status"] not in ["DONE", "MOVED"]:
                 io[dist][model]["status"] = "NOT STARTED"
             # Start libvmaf filter and plug in vmaf model
             tmp_filter = "libvmaf=model_path={}".format(model).replace("\\", "/").replace(":", "\\:")
@@ -323,7 +323,7 @@ if __name__ == "__main__":
         for dist, models in io.items():
             # For every model to test the distorted video with
             for model, data in models.items():
-                if io[dist][model]["status"] == "DONE":
+                if io[dist][model]["status"] in ["DONE", "MOVED"]:
                     continue
                 # Submit an ffmpy task to the pool
                 msg = "Submitting VMAF calculation:\n\tReference: {}\n\tDistorted: {}\n\tModel: {}\n\tLog File: {}\n"
@@ -458,7 +458,7 @@ if __name__ == "__main__":
                             print("\tDeleting related log file:\n\t{}...".format(Path(io[dist][model]["log_path"])))
                             Path(io[dist][model]["log_path"]).unlink(missing_ok=True)
                         cancellations[task] = True
-                    if io[dist][model]["status"] != "DONE":
+                    if io[dist][model]["status"] not in ["DONE", "MOVED"]:
                         io[dist][model]["status"] = "CANCELLED"
         del cancellations
         print("Pool has shutdown, exiting...")
