@@ -1,8 +1,8 @@
 # Native Libraries
 import datetime as dt
 import logging as lg
-from pathlib import Path
 import sys
+from pathlib import Path
 from typing import Optional
 
 
@@ -12,7 +12,7 @@ from typing import Optional
 # 2 -> WARNING
 # 3 -> ERROR
 # 4 -> CRITICAL
-class HunterAP_Logger():
+class HunterAP_Logger:
     def __init__(self, name: Optional[str] = "log", debug: Optional[bool] = False):
         self._debug = debug
         self._name = name
@@ -26,7 +26,7 @@ class HunterAP_Logger():
             cur_dt.day,
             cur_dt.hour,
             cur_dt.minute,
-            cur_dt.second
+            cur_dt.second,
         )
         log_name = tmp_path.joinpath(tmp_name)
 
@@ -44,7 +44,7 @@ class HunterAP_Logger():
 
         handler_fmt = {
             "fmt": "%(asctime)s [%(levelname)s]: %(message)s",
-            "datefmt": "%Y-%m-%d_%H:%M:%S"
+            "datefmt": "%Y-%m-%d_%H:%M:%S",
         }
         c_format = lg.Formatter(**handler_fmt)
         f_format = lg.Formatter(**handler_fmt)

@@ -1,10 +1,8 @@
+import logging as lg
 import subprocess as sp
 
-import logging as lg
-
 # Variable typing
-from typing import Optional
-from typing import Union
+from typing import Optional, Union
 
 import ffmpy
 
@@ -16,7 +14,7 @@ class FFmpy_Handler_Exception(ffmpy.FFExecutableNotFoundError):
 
 
 class FFmpy_Handler:
-    def __init__(self, executable_ffmpeg: str, log: lg.RootLogger):
+    def __init__(self, executable_ffmpeg: str, log: Optional[lg.RootLogger]):
         self._executable_ffmpeg = None
         self._libraries = []
         self._log = log
@@ -41,7 +39,14 @@ class FFmpy_Handler:
         for line in libs_out_str.split("\n"):
             self._libraries.append(line.strip().replace("\r", ""))
 
-    def run_command(self, executable: Optional[str] = None, ff_globals: Optional[str] = None, ff_inputs: Optional[dict] = None, ff_outputs: Optional[dict] = None, get_cmd: Optional[bool] = False) -> Union[str, tuple]:
+    def run_command(
+        self,
+        executable: Optional[str] = None,
+        ff_globals: Optional[str] = None,
+        ff_inputs: Optional[dict] = None,
+        ff_outputs: Optional[dict] = None,
+        get_cmd: Optional[bool] = False,
+    ) -> Union[str, tuple]:
         ff_exec = None
 
         try:
@@ -62,7 +67,7 @@ class FFmpy_Handler:
                 executable=ff_exec,
                 global_options=ff_globals,
                 inputs=ff_inputs,
-                outputs=ff_outputs
+                outputs=ff_outputs,
             )
 
             if get_cmd:

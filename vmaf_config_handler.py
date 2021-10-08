@@ -1,25 +1,27 @@
 # File parsing & handling
 import configparser as confp
 import logging as lg
-from pathlib import Path
-
-# Variable typing
-from typing import Optional
-from typing import Union
 
 # Misc
 import math
+from pathlib import Path
+
+# Variable typing
+from typing import Optional, Union
 
 # Made for this project
-from ffmpy_handler import FFmpy_Handler
-from ffmpy_handler import FFmpy_Handler_Exception
-from HunterAP_Process_Handler import HunterAP_Process_Handler as proc_handler
-from HunterAP_Process_Handler import HunterAP_Process_Handler_Error
+from ffmpy_handler import FFmpy_Handler, FFmpy_Handler_Exception
 from vmaf_file_handler import VMAF_File_Handler
 
 
 class VMAF_Config_Handler(VMAF_File_Handler):
-    def __init__(self, args: dict, mp_handler: proc_handler, log: lg.RootLogger, program: Optional[str] = "Calculations"):
+    def __init__(
+        self,
+        args: dict,
+        mp_handler: proc_handler,
+        log: lg.RootLogger,
+        program: Optional[str] = "Calculations",
+    ):
         self._args = args
         self._program = program
         self._mp_handler = mp_handler
@@ -35,7 +37,7 @@ class VMAF_Config_Handler(VMAF_File_Handler):
             file=filename,
             file_type="config",
             os_name=self._mp_handler.get_sys_platform(),
-            log=log
+            log=log,
         )
         if self._file is not None:
             self._config_data = self._read_config(self._file)
@@ -48,10 +50,7 @@ class VMAF_Config_Handler(VMAF_File_Handler):
 
     def _generate_default_config_dict(self) -> dict:
         config_dict = {
-            "General": {
-                "vmaf_version": 2,
-                "ffmpeg": "ffmpeg"
-            },
+            "General": {"vmaf_version": 2, "ffmpeg": "ffmpeg"},
             "Calculations": {
                 "psnr": False,
                 "ssim": False,
@@ -63,7 +62,7 @@ class VMAF_Config_Handler(VMAF_File_Handler):
                 "hwaccel": False,
                 "threads": self._mp_handler.get_cores_count(),
                 "processes": 1,
-                "use_remaining_threads": False
+                "use_remaining_threads": False,
             },
             "Graphing": {
                 "output": "vmaf",
@@ -71,21 +70,21 @@ class VMAF_Config_Handler(VMAF_File_Handler):
                 "custom": 0,
                 "threads": self._mp_handler.get_cores_count(),
                 "processes": 1,
-                "use_remaining_threads": False
+                "use_remaining_threads": False,
             },
             "Image Settings": {
                 "x": 1920.0,
                 "y": 1080.0,
                 "dpi": 100.0,
                 "format": "svg",
-                "transparent": True
+                "transparent": True,
             },
             "Video Settings": {
                 "x": 1920.0,
                 "y": 1080.0,
                 "framerate": 60.0,
-                "transparent": True
-            }
+                "transparent": True,
+            },
         }
         return config_dict
 
@@ -108,8 +107,10 @@ class VMAF_Config_Handler(VMAF_File_Handler):
 
         self._config_data = dict()
 
+        last_section = None
         try:
             for section, option in config_dict.items():
+                last_section = section
                 self._config_data[section] = dict()
                 for k, v in option.items():
                     try:
@@ -125,12 +126,13 @@ class VMAF_Config_Handler(VMAF_File_Handler):
                         self._config_data[section][k] = v
         except confp.NoSectionError:
             for k, v in config_dict.items():
-                self._config_data[section][k] = v
+                self._config_data[last_section][k] = v
 
         return self._config_data
 
     def _validate_options(self, filename: str) -> Union[bool, str]:
         """Validate all user specified, config-specified, and remaining default options."""
+
         def _validate_config_file(filename):
             """Validate the config file."""
 
@@ -175,7 +177,14 @@ class VMAF_Config_Handler(VMAF_File_Handler):
             elif cause == "Config file":
                 which_dict = self._config_data[self._program]
 
-            self._log.error(msg.format(cause, which_dict[var_type], var_type, self._mp_handler.get_cores_count()))
+            self._log.error(
+                msg.format(
+                    cause,
+                    which_dict[var_type],
+                    var_type,
+                    self._mp_handler.get_cores_count(),
+                )
+            )
 
         def _validate_mp(self, var_type: str = "thread"):
             self._log.info("Validating {} count...".format(var_type))
@@ -195,8 +204,8 @@ class VMAF_Config_Handler(VMAF_File_Handler):
                         msg = "Checking config file for specified {} count."
                         self._log.error(msg.format(var_type))
                         raise HunterAP_Process_Handler_Error()
-                else:
-                    self._config_data[self._program][type_plural] = self._args[type_plural]
+                    else:
+                        self._config_data[self._program][type_plural] = self._args[type_plural]
                 else:
                     raise HunterAP_Process_Handler_Error()
             except HunterAP_Process_Handler_Error:
@@ -212,17 +221,36 @@ class VMAF_Config_Handler(VMAF_File_Handler):
             try:
                 if total > self._mp_handler.get_cores_count():
                     msg = "Can not run {0} processes with {1} threads per process as that exceeds the number of threads in the system ({2} threads). Limiting processes down to allow as many processes as possible with {1} threads per process."
-                    raise HunterAP_Process_Handler_Error(msg.format(self._config_data[self._program]["processes"], self._config_data[self._program]["threads"], self._mp_handler.get_cores_count()))
+                    raise HunterAP_Process_Handler_Error(
+                        msg.format(
+                            self._config_data[self._program]["processes"],
+                            self._config_data[self._program]["threads"],
+                            self._mp_handler.get_cores_count(),
+                        )
+                    )
                 else:
                     msg = "Running {0} processes with {1} threads per process. Continuing..."
-                    self._log.info(msg.format(self._config_data[self._program]["processes"], self._config_data[self._program]["threads"]))
+                    self._log.info(
+                        msg.format(
+                            self._config_data[self._program]["processes"],
+                            self._config_data[self._program]["threads"],
+                        )
+                    )
             except HunterAP_Process_Handler_Error as hap_phe:
                 self._log.error(hap_phe)
                 processes = math.floor(self._mp_handler.get_cores_count() / int(self._config_data[self._program]["threads"]))
                 total_threads = self._config_data[self._program]["threads"] * processes
                 rem_threads = self._mp_handler.get_cores_count() - total_threads
                 msg = "The program will run {0} processes instead of {1}, with {2} threads per process for a total of {3} total threads in use, with {4} threads remaining unused."
-                self._log.error(msg.format(processes, self._config_data[self._program]["processes"], self._config_data[self._program]["threads"], total_threads, rem_threads))
+                self._log.error(
+                    msg.format(
+                        processes,
+                        self._config_data[self._program]["processes"],
+                        self._config_data[self._program]["threads"],
+                        total_threads,
+                        rem_threads,
+                    )
+                )
                 self._config_data[self._program]["processes"] = processes
 
         def _validate_ffmpeg(self) -> None:
@@ -231,7 +259,7 @@ class VMAF_Config_Handler(VMAF_File_Handler):
             handler_args = {
                 "file_type": "executable",
                 "os_name": self._mp_handler.get_sys_platform(),
-                "log": self._log
+                "log": self._log,
             }
             if self._args["ffmpeg"]:
                 handler_args["file"] = self._args["ffmpeg"]
@@ -241,36 +269,32 @@ class VMAF_Config_Handler(VMAF_File_Handler):
             self._config_data["General"]["ffmpeg"] = VMAF_File_Handler(**handler_args).get_file()
 
             try:
-                self._ffmpy = FFmpy_Handler(
-                    self._config_data["General"]["ffmpeg"],
-                    log=self._log
-                )
+                self._ffmpy = FFmpy_Handler(self._config_data["General"]["ffmpeg"], log=self._log)
 
                 has_vmaf = self._ffmpy.search_lib("libvmaf")
 
                 if self._program == "Calculations":
                     if not has_vmaf:
-                        msg = "FFmpeg is not built with VMAF support (\"--enable-libvmaf\"). The program can not continue and will now exit."
+                        msg = 'FFmpeg is not built with VMAF support ("--enable-libvmaf"). The program can not continue and will now exit.'
                         raise OSError(msg)
-                msg = "FFmpeg executable \"{}\" is valid and contains the libvmaf library. Continuing..."
+                msg = 'FFmpeg executable "{}" is valid and contains the libvmaf library. Continuing...'
                 self._log.info(msg.format(self._config_data["General"]["ffmpeg"]))
             # except ffmpy.FFExecutableNotFoundError as ffenfe:
             except FFmpy_Handler_Exception as ffenfe:
-                if self._mp_handler.get_sys_platform() == "Windows":
-                    msg = "FFmpeg executable was not found in given path \"{0}\".\n"
-                    msg += "FFmpeg is required for this program to run.\n"
-                    msg += "Please make sure you have FFmpeg installed correctly and that you are pointing to the executable through either your config file or through runtime arguments."
-                    self._log.critical(msg.format(self._config_data["General"]["ffmpeg"]))
-                else:
-                    self._log.critical(ffenfe)
+                # if self._mp_handler.get_sys_platform() == "Windows":
+                #     msg = 'FFmpeg executable was not found in given path "{0}".\n'
+                #     msg += "FFmpeg is required for this program to run.\n"
+                #     msg += "Please make sure you have FFmpeg installed correctly and that you are pointing to the executable through either your config file or through runtime arguments."
+                #     self._log.critical(
+                #         msg.format(self._config_data["General"]["ffmpeg"])
+                #     )
+                # else:
+                #     self._log.critical(ffenfe)
                 exit(1)
 
         def _validate_model(self) -> None:
             self._log.info("Validating VMAF model file...")
-            model_args = {
-                "file_type": "model",
-                "log": self._log
-            }
+            model_args = {"file_type": "model", "log": self._log}
             if self._args["model"]:
                 model_args["file"] = self._args["model"]
             else:
@@ -304,11 +328,9 @@ class VMAF_Config_Handler(VMAF_File_Handler):
                 out, err = self._ffmpy.run_command(
                     ff_inputs={
                         "video_samples/sample1.mp4": None,
-                        "video_samples/sample2.mp4": None
+                        "video_samples/sample2.mp4": None,
                     },
-                    ff_outputs={
-                        "-": output_cmd.format(tmp_model)
-                    }
+                    ff_outputs={"-": output_cmd.format(tmp_model)},
                 )
 
                 if "could not read model from path" in err.decode("utf-8"):
@@ -316,7 +338,12 @@ class VMAF_Config_Handler(VMAF_File_Handler):
                     raise FileNotFoundError(msg.format(self._args["model"]))
                 else:
                     msg = "VMAF model file {0} is valid for running with VMAF version {1}. Continuing..."
-                    self._log.info(msg.format(self._config_data["Calculations"]["model"], self._config_data["General"]["vmaf_version"]))
+                    self._log.info(
+                        msg.format(
+                            self._config_data["Calculations"]["model"],
+                            self._config_data["General"]["vmaf_version"],
+                        )
+                    )
                     self._config_data["Calculations"]["model"] = tmp_model
             except FileNotFoundError as fnfe:
                 self._log.critical(fnfe)
@@ -335,7 +362,7 @@ class VMAF_Config_Handler(VMAF_File_Handler):
                 tmp_log = VMAF_File_Handler(
                     self._config_data["Calculations"]["log_path"],
                     file_type="log",
-                    log=self._log
+                    log=self._log,
                 ).get_file()
                 self._config_data["Calculations"]["log_path"] = tmp_log
                 self._config_data["Calculations"]["log_format"] = Path(tmp_log).suffix.replace(".", "")

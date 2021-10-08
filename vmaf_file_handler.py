@@ -1,21 +1,30 @@
 # Logging
+# Expected file type handlers
+import csv
+import json
 import logging as lg
 
 # File & system handling
 import os
 from pathlib import Path
 
-# Expected file type handlers
-import csv
-import json
-# import xml.etree.ElementTree as xmla
-
 # File typing
 from typing import Optional
 
+# import xml.etree.ElementTree as xmla
+
 
 class VMAF_File_Handler:
-    def __init__(self, file: str, log: lg.RootLogger, file_type: Optional[str] = "config", ext: Optional[str] = "json", os_name: Optional[str] = "Windows", vmaf_version: Optional[int] = 2, program: Optional[str] = "Calculations"):
+    def __init__(
+        self,
+        file: str,
+        log: lg.RootLogger,
+        file_type: Optional[str] = "config",
+        ext: Optional[str] = "json",
+        os_name: Optional[str] = "Windows",
+        vmaf_version: Optional[int] = 2,
+        program: Optional[str] = "Calculations",
+    ):
         self._file = None
         self._file_type = file_type
         self._os_name = os_name
@@ -57,7 +66,7 @@ class VMAF_File_Handler:
             else:
                 msg = ""
                 if self._file_type == "config":
-                    msg = "WARNING: Config file \"{}\" does not exist. Generating default config.".format(file)
+                    msg = 'WARNING: Config file "{}" does not exist. Generating default config.'.format(file)
                 elif self._file_type == "log":
                     if self._program == "Calculations":
                         if tmp_file.suffix == "":
@@ -65,9 +74,9 @@ class VMAF_File_Handler:
                         else:
                             self._file = str(Path(file))
                         return
-                    msg = "Log file \"{}\" does not exist.".format(file)
+                    msg = 'Log file "{}" does not exist.'.format(file)
                 elif self._file_type == "model":
-                    msg = "VMAF model file \"{}\" does not exist.".format(file)
+                    msg = 'VMAF model file "{}" does not exist.'.format(file)
                 elif self._file_type == "executable":
                     # msg = "ERROR: Executable \"{}\" does not exist.".format(file)
                     for item in self._path:
@@ -76,10 +85,10 @@ class VMAF_File_Handler:
                         else:
                             return
                     if self._file is None:
-                        msg = "File \"{}\" does not exist.".format(file)
+                        msg = 'File "{}" does not exist.'.format(file)
                         raise FileNotFoundError(msg)
                 else:
-                    msg = "File \"{}\" does not exist.".format(file)
+                    msg = 'File "{}" does not exist.'.format(file)
                 raise FileNotFoundError(msg)
         except FileNotFoundError as fnfe:
             self._log.error(fnfe)
@@ -89,7 +98,13 @@ class VMAF_File_Handler:
                 self._log.critical("The program will now exit.")
                 exit(1)
 
-    def _find_file(self, loc: str, filename: str = "", should_exit: Optional[bool] = False, is_env: Optional[bool] = False) -> None:
+    def _find_file(
+        self,
+        loc: str,
+        filename: str = "",
+        should_exit: Optional[bool] = False,
+        is_env: Optional[bool] = False,
+    ) -> None:
         try:
             if loc.exists():
                 for entry in loc.iterdir():
@@ -99,7 +114,7 @@ class VMAF_File_Handler:
                         else:
                             return
             if not is_env or self._log.get_debug():
-                msg = "Could not find {0} file in \"{1}\"."
+                msg = 'Could not find {0} file in "{1}".'
                 raise FileNotFoundError(msg.format(self._file_type, loc))
         except FileNotFoundError as fnfe:
             self._log.warning(fnfe)
@@ -155,21 +170,21 @@ class VMAF_File_Handler:
         try:
             msg = None
             if self._file_type == "config":
-                msg = "File \"{0}\" is not a config file."
+                msg = 'File "{0}" is not a config file.'
                 msg = msg.format(file)
             elif self._file_type == "log":
-                msg = "File \"{0}\" is not a valid VMAF log."
+                msg = 'File "{0}" is not a valid VMAF log.'
                 msg = msg.format(file)
             elif self._file_type == "model":
                 msg = ""
                 if model_error_type is None:
-                    msg = "File \"{0}\" is not a valid VMAF log."
+                    msg = 'File "{0}" is not a valid VMAF log.'
                     msg = msg.format(file)
                 else:
-                    msg = "File \"{0}\" is not valid for VMAF version {1}."
+                    msg = 'File "{0}" is not valid for VMAF version {1}.'
                     msg = msg.format(file, self._vmaf)
             elif self._file_type == "executable":
-                msg = "File \"{0}\" is not a valid executable.."
+                msg = 'File "{0}" is not a valid executable..'
                 msg = msg.format(file)
             raise FileNotFoundError(msg)
         except FileNotFoundError as fnfe:
