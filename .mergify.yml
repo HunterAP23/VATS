@@ -1,4 +1,11 @@
 pull_request_rules:
+  - name: Automatic merge on approval
+    conditions:
+      - "#approved-reviews-by>=1"
+    actions:
+      merge:
+        method: merge
+
   - name: "Auto-Merge Security Updates (dependabot[bot])"
     conditions:
       - author=dependabot[bot]
@@ -6,9 +13,3 @@ pull_request_rules:
       merge:
         method: merge
 
-  - name: "Auto-Merge Security Updates (dependabot-preview[bot])"
-    conditions:
-      - author=dependabot-preview[bot]
-    actions:
-      merge:
-        method: merge
