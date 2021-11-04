@@ -5,13 +5,13 @@ import sys
 from itertools import chain
 from pathlib import Path
 from string import digits
-from typing import Iterable, Literal, Union
+from typing import Iterable, Literal, Optional, Union
 
 
 def print_dict(item, tablevel=1, show_hidden=False):
     for key, val in item.items():
-        if type(key) is str and key.startswith("__"):
-            continue
+        # if type(key) is str and key.startswith("__"):
+        #     continue
 
         iter = None
         if type(val) in (dict, confp.SectionProxy):
@@ -33,8 +33,8 @@ def print_dict(item, tablevel=1, show_hidden=False):
                     continue
 
         for k, v in sorted(iter.items()):
-            if k.startswith("__"):
-                continue
+            # if k.startswith("__"):
+            #     continue
 
             if type(v) in (dict, confp.SectionProxy):
                 print("{0}{1}:".format("\t" * (tablevel + 1), str(k).ljust(10)))
@@ -74,23 +74,26 @@ def build_glob_from_ext(ext: str) -> str:
     return "*." + "".join(pattern_parts)
 
 
-def find_by_exts(loc: Union[str, Path], exts: Iterable[str], rec=False) -> Iterable[Union[str, Path]]:
+def find_by_exts(
+    loc: Union[str, Path], exts: Iterable[str], rec=False, should_print: Optional[bool] = True
+) -> Iterable[Union[str, Path]]:
     globs = map(build_glob_from_ext, exts)
     if rec:
         for loc in chain.from_iterable(map(Path(loc).rglob, globs)):
-            print("Found file {}".format(loc))
+            if should_print:
+                print("Found file {}".format(loc))
             yield str(loc)
     else:
         for loc in chain.from_iterable(map(Path(loc).glob, globs)):
-            print("Found file {}".format(loc))
+            if should_print:
+                print("Found file {}".format(loc))
             yield str(loc)
 
 
 def search_handler(
     item,
-    search_for: Literal["reference", "distorted", "model"] = "reference",
-    recurse: bool = False,
-    vmaf_version: int = 2,
+    search_for: Literal["reference", "distorted", "model", "report"] = "reference",
+    recurse: Optional[bool] = False,
 ):
     item_path = Path(item)
     if item_path.exists():
@@ -103,7 +106,7 @@ def search_handler(
         elif search_for == "distorted":
             if item_path.is_dir():
                 # Scan for MKV and MP4 files
-                return list(find_by_exts(item_path, exts=["mkv", "mp4"], rec=recurse))
+                return list(find_by_exts(item_path, exts=["mkv", "mp4"], rec=recurse, should_print=False))
             # If the given dist is a file, return it
             elif item_path.is_file():
                 # Naive method of checking if the file is a video
@@ -120,9 +123,27 @@ def search_handler(
             elif item_path.is_file():
                 # Naive method of checking if the file is a VMAF model
                 ext = item_path.suffix.lower()
-                check1 = vmaf_version == 1 and ext == ".pkl"
-                check2 = vmaf_version == 2 and ext == ".json"
-                if check1 or check2:
+                if ext == ".json":
+                    return [
+                        item,
+                    ]
+                else:
+                    print("VMAF model file {} is not valid.".format(item))
+                    return
+        # When searching for VMAF reports
+        elif search_for == "report":
+            if item_path.is_dir():
+                tmp_reports = list(
+                    find_by_exts(item_path, exts=["xml", "json", "txt"], rec=recurse, should_print=False)
+                )
+                return list(
+                    [report for report in tmp_reports if "aggregate" not in report and "statistics" not in report]
+                )
+                # print('VMAF report should be a file, but "{}" is a directory.'.format(item))
+            elif item_path.is_file():
+                # Naive method of checking if the file is a VMAF report
+                ext = item_path.suffix.lower()
+                if ext in [".xml", ".json", ".txt"]:
                     return [
                         item,
                     ]

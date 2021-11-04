@@ -4,14 +4,14 @@ import os
 import xml.etree.ElementTree as xml
 from pathlib import Path
 
-from HunterAP_Common import print_err
+from vmaf_common import print_err
 
 # from vmaf_config_handler import VMAF_Config_Handler
 from vmaf_file_handler import VMAF_File_Handler
 
 
 class VMAF_Report_Handler(VMAF_File_Handler):
-    def __init__(self, file=None, config=False):
+    def __init__(self, file=None, config=False, datapoints=["VMAF", "PSNR", "SSIM", "MS-SSIM"]):
         try:
             filename = ""
             if file:
@@ -39,6 +39,8 @@ class VMAF_Report_Handler(VMAF_File_Handler):
         except OSError as ose:
             print_err(ose)
             exit(1)
+
+        self.datapoints = datapoints
 
         # try:
         #     if config:
@@ -77,8 +79,8 @@ class VMAF_Report_Handler(VMAF_File_Handler):
 
     def read_file(self):
         if self.type == "unspecified":
-            with open(self.file, "r") as fil:
-                check = fil.read(1)
+            with open(self.file, "r") as f:
+                check = f.read(1)
                 if check == "{":
                     self.type = "json"
                 elif check == "<":
@@ -107,29 +109,23 @@ class VMAF_Report_Handler(VMAF_File_Handler):
         with open(self.file, "r") as f:
             lines = f.readlines()
 
-            vmaf_lines = []
-            psnr_lines = []
-            ssim_lines = []
-            ms_ssim_lines = []
+            for point in self.datapoints:
+                data[point] = []
+
             for line in lines:
                 sep = line.split(" ")
                 for section in sep:
-                    if section.strip().startswith('vmaf="'):
+                    if "VMAF" in self.datapoints and section.strip().startswith('vmaf="'):
                         tmp = section.split('"')[1]
-                        vmaf_lines.append(round(float(tmp), 3))
-                    elif section.strip().startswith('psnr="'):
+                        data["VMAF"].append(round(float(tmp), 3))
+                    elif "PSNR" in self.datapoints and section.strip().startswith('psnr="'):
                         tmp = section.split('"')[1]
-                        psnr_lines.append(round(float(tmp), 3))
-                    elif section.strip().startswith('ssim="'):
+                        data["PSNR"].append(round(float(tmp), 3))
+                    elif "SSIM" in self.datapoints and section.strip().startswith('ssim="'):
                         tmp = section.split('"')[1]
-                        ssim_lines.append(round(float(tmp), 3))
-                    elif section.strip().startswith('ms_ssim="'):
+                        data["SSIM"].append(round(float(tmp), 3))
+                    elif "MS-SSIM" in self.datapoints and section.strip().startswith('ms_ssim="'):
                         tmp = section.split('"')[1]
-                        ms_ssim_lines.append(round(float(tmp), 3))
-
-            data["vmaf"] = vmaf_lines
-            data["psnr"] = psnr_lines
-            data["ssim"] = ssim_lines
-            data["ms_ssim"] = ms_ssim_lines
+                        data["MS-SSIM"].append(round(float(tmp), 3))
 
         return data

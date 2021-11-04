@@ -217,7 +217,9 @@ class VMAF_Config_Handler(VMAF_File_Handler):
 
         def _validate_threads_processes(self) -> None:
             self._log.info("Validating total process count...")
-            total = int(self._config_data[self._program]["threads"]) * int(self._config_data[self._program]["processes"])
+            total = int(self._config_data[self._program]["threads"]) * int(
+                self._config_data[self._program]["processes"]
+            )
             try:
                 if total > self._mp_handler.get_cores_count():
                     msg = "Can not run {0} processes with {1} threads per process as that exceeds the number of threads in the system ({2} threads). Limiting processes down to allow as many processes as possible with {1} threads per process."
@@ -238,7 +240,9 @@ class VMAF_Config_Handler(VMAF_File_Handler):
                     )
             except HunterAP_Process_Handler_Error as hap_phe:
                 self._log.error(hap_phe)
-                processes = math.floor(self._mp_handler.get_cores_count() / int(self._config_data[self._program]["threads"]))
+                processes = math.floor(
+                    self._mp_handler.get_cores_count() / int(self._config_data[self._program]["threads"])
+                )
                 total_threads = self._config_data[self._program]["threads"] * processes
                 rem_threads = self._mp_handler.get_cores_count() - total_threads
                 msg = "The program will run {0} processes instead of {1}, with {2} threads per process for a total of {3} total threads in use, with {4} threads remaining unused."

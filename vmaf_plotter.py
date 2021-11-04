@@ -2,262 +2,319 @@
 
 import argparse as argp
 import concurrent.futures as cf
-import sys
 import time
-import traceback
+from collections import OrderedDict
 from pathlib import Path
+from traceback import print_exc
 
 import matplotlib as mpl
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
+from tqdm import tqdm
 
-from vmaf_common import search_handler
+from vmaf_common import bytes2human, print_dict, search_handler
 
 # from vmaf_config_handler import VMAF_Config_Handler
 from vmaf_report_handler import VMAF_Report_Handler
 
+# def calc_progress(current, total, phrase="Saving frame"):
+#     percent = "{0:.2f}".format(current * 100 / total).zfill(5)
+#     sys.stdout.write("\r{0} {1} out of {2} : {3}%".format(phrase, current, total, percent))
+#     sys.stdout.flush()
 
-def calc_progress(current, total, phrase="Saving frame"):
-    percent = "{0:.2f}".format(current * 100 / total).zfill(5)
-    sys.stdout.write("\r{0} {1} out of {2} : {3}%".format(phrase, current, total, percent))
-    sys.stdout.flush()
+
+def quantile_abs_dev(array, quantile):
+    quantile = array.quantile(quantile)
+    x = pd.DataFrame(array - quantile).abs()
+    return x.mean()
 
 
 def create_datapoint(data):
     point = {}
-    point["list"] = data
-    point["array"] = np.array(data)
-    point["mean"] = round(np.mean(point["array"]), 3)
-    point["median"] = round(np.median(point["array"]), 3)
-    point["standard_deviation"] = round(np.std(point["array"]), 3)
-    point["perc_1"] = round(np.percentile(point["array"], 1), 3)
-    point["perc_01"] = round(np.percentile(point["array"], 0.1), 3)
-    point["perc_001"] = round(np.percentile(point["array"], 0.01), 3)
-    point["minimum"] = round(min(data), 3)
+    point["dataset"] = pd.Series(data)
+
+    point["Mean"] = round(point["dataset"].mean(), 3)
+    point["Median"] = round(point["dataset"].median(), 3)
+    point["Standard Deviation"] = round(point["dataset"].std(), 3)
+    point["Mean Absolute Deviation"] = round(point["dataset"].mad(), 3)
+    point["Median Absolute Deviation"] = round(point["dataset"].agg(quantile_abs_dev, quantile=0.5), 3)
+    point["99th Percentile"] = round(point["dataset"].quantile(0.99), 3)
+    point["95th Percentile"] = round(point["dataset"].quantile(0.95), 3)
+    point["90th Percentile"] = round(point["dataset"].quantile(0.90), 3)
+    point["75th Percentile"] = round(point["dataset"].quantile(0.75), 3)
+    point["25th Percentile"] = round(point["dataset"].quantile(0.25), 3)
+    point["1st Percentile"] = round(point["dataset"].quantile(0.01), 3)
+    point["0.1st Percentile"] = round(point["dataset"].quantile(0.001), 3)
+    point["0.01st Percentile"] = round(point["dataset"].quantile(0.0001), 3)
+    # point["Minimum"] = round(min(data), 3)
+    point["99th Percentile Absolute Deviation"] = round(point["dataset"].agg(quantile_abs_dev, quantile=0.99), 3)
+    point["95th Percentile Absolute Deviation"] = round(point["dataset"].agg(quantile_abs_dev, quantile=0.95), 3)
+    point["90th Percentile Absolute Deviation"] = round(point["dataset"].agg(quantile_abs_dev, quantile=0.9), 3)
+    point["75th Percentile Absolute Deviation"] = round(point["dataset"].agg(quantile_abs_dev, quantile=0.75), 3)
+    point["25th Percentile Absolute Deviation"] = round(point["dataset"].agg(quantile_abs_dev, quantile=0.25), 3)
+    point["1st Percentile Absolute Deviation"] = round(point["dataset"].agg(quantile_abs_dev, quantile=0.01), 3)
+    point["0.1st Percentile Absolute Deviation"] = round(point["dataset"].agg(quantile_abs_dev, quantile=0.001), 3)
+    point["0.01st Percentile Absolute Deviation"] = round(point["dataset"].agg(quantile_abs_dev, quantile=0.0001), 3)
+
+    ewm = point["dataset"].ewm(com=0.5)
+
+    ewm_mean = ewm.mean()
+    point["EWM Average Mean"] = round(ewm_mean.mean(), 3)
+    point["EWM Average Median"] = round(ewm_mean.median(), 3)
+    point["EWM Average Standard Deviation"] = round(ewm_mean.std(), 3)
+    point["EWM Average Mean Absolute Deviation"] = round(ewm_mean.mad(), 3)
+    point["EWM Average Median Absolute Deviation"] = round(ewm_mean.agg(quantile_abs_dev, quantile=0.5), 3)
+    point["EWM Average 99th Percentile"] = round(ewm_mean.quantile(0.99), 3)
+    point["EWM Average 95th Percentile"] = round(ewm_mean.quantile(0.95), 3)
+    point["EWM Average 90th Percentile"] = round(ewm_mean.quantile(0.90), 3)
+    point["EWM Average 75th Percentile"] = round(ewm_mean.quantile(0.75), 3)
+    point["EWM Average 25th Percentile"] = round(ewm_mean.quantile(0.25), 3)
+    point["EWM Average 1st Percentile"] = round(ewm_mean.quantile(0.01), 3)
+    point["EWM Average 0.1st Percentile"] = round(ewm_mean.quantile(0.001), 3)
+    point["EWM Average 0.01st Percentile"] = round(ewm_mean.quantile(0.0001), 3)
+    point["EWM Average 99th Percentile Absolute Deviation"] = round(ewm_mean.agg(quantile_abs_dev, quantile=0.99), 3)
+    point["EWM Average 95th Percentile Absolute Deviation"] = round(ewm_mean.agg(quantile_abs_dev, quantile=0.95), 3)
+    point["EWM Average 90th Percentile Absolute Deviation"] = round(ewm_mean.agg(quantile_abs_dev, quantile=0.9), 3)
+    point["EWM Average 75th Percentile Absolute Deviation"] = round(ewm_mean.agg(quantile_abs_dev, quantile=0.75), 3)
+    point["EWM Average 25th Percentile Absolute Deviation"] = round(ewm_mean.agg(quantile_abs_dev, quantile=0.25), 3)
+    point["EWM Average 1st Percentile Absolute Deviation"] = round(ewm_mean.agg(quantile_abs_dev, quantile=0.01), 3)
+    point["EWM Average 0.1st Percentile Absolute Deviation"] = round(ewm_mean.agg(quantile_abs_dev, quantile=0.001), 3)
+    point["EWM Average 0.01st Percentile Absolute Deviation"] = round(
+        ewm_mean.agg(quantile_abs_dev, quantile=0.0001), 3
+    )
+
+    ewm_std = ewm.std()
+    point["EWM Standard Deviation Mean"] = round(ewm_std.mean(), 3)
+    point["EWM Standard Deviation Median"] = round(ewm_std.median(), 3)
+    point["EWM Standard Deviation Standard Deviation"] = round(ewm_std.std(), 3)
+    point["EWM Standard Deviation Mean Absolute Deviation"] = round(ewm_std.mad(), 3)
+    point["EWM Standard Deviation Median Absolute Deviation"] = round(ewm_std.agg(quantile_abs_dev, quantile=0.5), 3)
+    point["EWM Standard Deviation 99th Percentile"] = round(ewm_std.quantile(0.99), 3)
+    point["EWM Standard Deviation 95th Percentile"] = round(ewm_std.quantile(0.95), 3)
+    point["EWM Standard Deviation 90th Percentile"] = round(ewm_std.quantile(0.90), 3)
+    point["EWM Standard Deviation 75th Percentile"] = round(ewm_std.quantile(0.75), 3)
+    point["EWM Standard Deviation 25th Percentile"] = round(ewm_std.quantile(0.25), 3)
+    point["EWM Standard Deviation 1st Percentile"] = round(ewm_std.quantile(0.01), 3)
+    point["EWM Standard Deviation 0.1st Percentile"] = round(ewm_std.quantile(0.001), 3)
+    point["EWM Standard Deviation 0.01st Percentile"] = round(ewm_std.quantile(0.0001), 3)
+    point["EWM Standard Deviation 99th Percentile Absolute Deviation"] = round(
+        ewm_std.agg(quantile_abs_dev, quantile=0.99), 3
+    )
+    point["EWM Standard Deviation 95th Percentile Absolute Deviation"] = round(
+        ewm_std.agg(quantile_abs_dev, quantile=0.95), 3
+    )
+    point["EWM Standard Deviation 90th Percentile Absolute Deviation"] = round(
+        ewm_std.agg(quantile_abs_dev, quantile=0.9), 3
+    )
+    point["EWM Standard Deviation 75th Percentile Absolute Deviation"] = round(
+        ewm_std.agg(quantile_abs_dev, quantile=0.75), 3
+    )
+    point["EWM Standard Deviation 25th Percentile Absolute Deviation"] = round(
+        ewm_std.agg(quantile_abs_dev, quantile=0.25), 3
+    )
+    point["EWM Standard Deviation 1st Percentile Absolute Deviation"] = round(
+        ewm_std.agg(quantile_abs_dev, quantile=0.01), 3
+    )
+    point["EWM Standard Deviation 0.1st Percentile Absolute Deviation"] = round(
+        ewm_std.agg(quantile_abs_dev, quantile=0.001), 3
+    )
+    point["EWM Standard Deviation 0.01st Percentile Absolute Deviation"] = round(
+        ewm_std.agg(quantile_abs_dev, quantile=0.0001), 3
+    )
 
     return point
 
 
-def plot_vmaf(data, fps, res, output, output_types, datapoints, report):
+def get_stats(data, output, datapoints, report):
     main = {}
 
-    # Create statistics for the selected datapoints
-    dp = []
-    if "all" in datapoints:
-        dp = ["vmaf", "psnr", "ssim", "ms_ssim"]
-    else:
-        dp = [point for point in datapoints]
-
-    for point in dp:
+    for point in datapoints:
         main[point] = create_datapoint(data[point])
-        if point in ["ssim", "ms_ssim"]:
-            main[point]["maximum"] = 1
+        if point in ["SSIM", "MS-SSIM"]:
+            main[point]["Maximum"] = 1
         else:
-            main[point]["maximum"] = 100
-    main["index"] = [x for x in range(len(data["vmaf"]))]
+            main[point]["Maximum"] = 100
+    main["index"] = [x for x in range(len(data["VMAF"]))]
 
-    main["file_path"] = Path(output)
-    main["file_name"] = Path(report).stem
+    main["File Path"] = Path(output)
+    main["File Name"] = Path(report).stem
+    name, model = get_name_model(main["File Name"])
+    # main["File Size"] = bytes2human(main["File Path"].joinpath(name + ".mp4").stat().st_size)
+    main["File Size"] = main["File Path"].joinpath(name + ".mp4").stat().st_size
 
-    # Only save statistics file
-    if any(item in ["all", "stats"] for item in output_types):
-        stats_file = str(main["file_path"].joinpath("{0}_statistics.txt".format(main["file_name"])))
+    return main
 
-        print("Saving statistics to {0}...".format(stats_file))
-        # data["vmaf"]_df.to_csv(stats_file)
-        with open(str(stats_file), "w") as stat:
-            stat.write("Number of frames: {}\n".format(len(main["index"])))
-            for point in dp:
-                stat.write("Mean {} Score: {}\n".format(point.upper(), main[point]["mean"]))
-                stat.write("Median {} Score: {}\n".format(point.upper(), main[point]["median"]))
-                stat.write("standard_deviation {} Score: {}\n".format(point.upper(), main[point]["standard_deviation"]))
-                stat.write("1% Lowest {} Score: {}\n".format(point.upper(), main[point]["perc_1"]))
-                stat.write("0.1% Lowest {} Score: {}\n".format(point.upper(), main[point]["perc_01"]))
-                stat.write("0.01% Lowest {} Score: {}\n\n".format(point.upper(), main[point]["perc_001"]))
-        print("Done!")
 
-    if any(item in ["all", "image", "video"] for item in output_types):
-        for point in dp:
-            [
-                plt.axhline(
-                    int(i),
-                    color="grey",
-                    linewidth=0.4,
-                    antialiased=True,
-                    rasterized=True,
-                )
-                for i in np.linspace(start=0, stop=main[point]["maximum"], num=100)
-            ]
-            [
-                plt.axhline(
-                    int(i),
-                    color="black",
-                    linewidth=0.6,
-                    antialiased=True,
-                    rasterized=True,
-                )
-                for i in np.linspace(start=0, stop=main[point]["maximum"], num=20)
-            ]
+def write_stats(main, datapoints, metrics):
+    stats_file = str(main["File Path"].joinpath("{0}_statistics.txt".format(main["File Name"])))
 
-            plt.rcParams.update(
-                {
-                    "figure.facecolor": (0.0, 0.0, 0.0, 0.0),
-                    "figure.edgecolor": "black",
-                    "axes.facecolor": (0.0, 0.0, 0.0, 0.0),
-                    "savefig.facecolor": (0.0, 0.0, 0.0, 0.0),
-                    "legend.facecolor": (0.0, 0.0, 0.0, 0.0),
-                    "legend.edgecolor": "black",
-                    "legend.frameon": False,
-                    "savefig.transparent": True,
-                    "animation.codec": "qtrle",
-                    # "agg.path.chunksize": 1000000,
-                    "path.simplify_threshold": 1,
-                }
+    # print("Saving statistics to {0}...".format(stats_file))
+    with open(str(stats_file), "w") as stat:
+        stat.write("Number of frames: {}\n".format(len(main["index"])))
+        for point in datapoints:
+            for metric in metrics:
+                stat.write("{} {} Score: {}\n".format(metric, point.upper(), main[point][metric]))
+    # print("Done!")
+
+
+def create_plot(main, datapoints, metrics, font_size):
+    for point in datapoints:
+        fig, ax = plt.subplots()
+
+        [
+            ax.axhline(
+                int(i),
+                color="grey",
+                linewidth=0.4,
+                antialiased=True,
+                rasterized=True,
             )
-
-            fig, ax = plt.subplots()
-
-            font_size = 16
-            fig.patch.set_alpha(0.0)
-            if res == "720":
-                fig.set_size_inches(12.8, 7.2)
-                plt.rcParams.update({"font.size": 22})
-            elif res == "1080":
-                fig.set_size_inches(19.2, 10.8)
-                plt.rcParams.update({"font.size": 24})
-                font_size = 19
-            elif res == "1440":
-                fig.set_size_inches(25.6, 14.4)
-                plt.rcParams.update({"font.size": 26})
-                font_size = 22
-            elif res == "4k":
-                fig.set_size_inches(38.4, 21.6)
-                plt.rcParams.update({"font.size": 28})
-                font_size = 25
-            fig.dpi = 100
-            plt.yticks(fontsize=font_size)
-            plt.xticks(fontsize=font_size)
-
-            label = "Frames: {0}  |  Mean: {1}  |  standard_deviation: {2}  |  Median: {3}  |  1%: {4}  |  0.1%: {5}  |  0.01%: {6}".format(
-                len(main["index"]),
-                main[point]["mean"],
-                main[point]["median"],
-                main[point]["standard_deviation"],
-                main[point]["perc_1"],
-                main[point]["perc_01"],
-                main[point]["perc_001"],
+            for i in np.linspace(start=0, stop=main[point]["Maximum"], num=100)
+        ]
+        [
+            ax.axhline(
+                int(i),
+                color="black",
+                linewidth=0.6,
+                antialiased=True,
+                rasterized=True,
             )
+            for i in np.linspace(start=0, stop=main[point]["Maximum"], num=20)
+        ]
 
-            plt.legend(
-                labels=[
-                    label,
-                ],
-                loc="best",
-                bbox_to_anchor=(0.5, -0.1),
-                fancybox=True,
-                shadow=False,
+        fig.dpi = 100
+        plt.yticks(fontsize=font_size)
+        plt.xticks(fontsize=font_size)
+
+        label = "Frames: {0} | ".format(len(main["index"]))
+        for metric in metrics:
+            label += "{0}: {1} | ".format(metric, main[point][metric])
+
+        plt.legend(
+            labels=[
+                label,
+            ],
+            loc="best",
+            bbox_to_anchor=(0.5, -0.1),
+            fancybox=True,
+            shadow=False,
+        )
+        plt.locator_params(axis="y", tight=True, nbins=5)
+
+        plt.ylim(0, main[point]["Maximum"])
+        plt.tight_layout()
+        plt.margins(0)
+
+        return fig, ax, label
+
+
+def create_image(main, datapoints, res, fig, font_size, label):
+    for point in datapoints:
+        # Save plot to image file
+        image_file = str(main["File Path"].joinpath("{0}_{1}_{2}.png".format(main["File Name"], point, res)))
+
+        plt.plot(
+            main[point]["dataset"],
+            linewidth=0.7,
+            antialiased=True,
+            figure=fig,
+            rasterized=True,
+        )
+
+        plt.ylabel(point.upper(), fontsize=font_size)
+        plt.xlabel(label, fontsize=font_size)
+
+        # print("Saving graph to {0}...".format(image_file))
+        plt.savefig(image_file, dpi=100, transparent=True)
+        # print("Done!")
+
+
+def create_video(main, datapoints, res, fps, fig, ax):
+    for point in datapoints:
+        ax.set_ylim(0, main[point]["Maximum"])
+        ax.set_xlim(
+            main["index"][0] - main["index"][60],
+            main["index"][60],
+        )
+        ax.set_xticklabels([])
+        fig.patch.set_alpha(0.0)
+
+        def init():
+            line.set_data([], [])
+            return (line,)
+
+        def animate(i):
+            line.set_data(main["index"][:i], main[point]["dataset"][:i])
+            ax.set_xlim(
+                main["index"][i] - main["index"][60],
+                main["index"][i] + main["index"][60],
             )
-            plt.locator_params(axis="y", tight=True, nbins=5)
+            return (line,)
 
-            plt.ylim(0, main[point]["maximum"])
-            plt.tight_layout()
-            plt.margins(0)
+        length = len(main["index"])
 
-            # Save plot to image file
-            if any(item in ["all", "image"] for item in output_types):
-                image_file = str(main["file_path"].joinpath("{0}_{1}_{2}.png".format(main["file_name"], point, res)))
+        (line,) = ax.plot(main["index"], main[point]["dataset"])
+        anim = mpl.animation.FuncAnimation(
+            fig,
+            animate,
+            init_func=init,
+            frames=length,
+            interval=float(1000 / fps),
+            blit=True,
+            save_count=50,
+        )
 
-                plt.plot(
-                    main[point]["array"],
-                    linewidth=0.7,
-                    antialiased=True,
-                    figure=fig,
-                    rasterized=True,
-                )
+        anim_file = str(main["File Path"].joinpath("{0}_{1}_{2}.mov".format(main["File Name"], point, res)))
 
-                plt.ylabel(point.upper(), fontsize=font_size)
-                plt.xlabel(label, fontsize=font_size)
+        # print("Saving animated graph to video file {}...".format(anim_file))
+        # start = time()
+        anim.save(
+            anim_file,
+            extra_args=["-c:v", "prores_ks"],
+            fps=fps,
+            dpi="figure",
+            savefig_kwargs={"transparent": True},
+            # progress_callback=calc_progress,
+        )
+        # calc_progress(length, length)
+        # print("")
+        # end = time()
+        # time_taken = end - start
+        # minutes = int(time_taken / 60)
+        # hours = int(minutes / 60)
+        # seconds = time_taken % 60
+        # print("Done! Video took took {0}H : {1}M : {2:0.2f}S to export.".format(hours, minutes, seconds))
 
-                print("Saving graph to {0}...".format(image_file))
-                plt.savefig(image_file, dpi=100, transparent=True)
-                print("Done!")
-                exit()
 
-            if any(item in ["all", "video"] for item in output_types):
-                ax.set_ylim(0, main[point]["maximum"])
-                ax.set_xlim(
-                    main["index"][0] - main["index"][60],
-                    main["index"][60],
-                )
-                ax.set_xticklabels([])
-                fig.patch.set_alpha(0.0)
-
-                def init():
-                    line.set_data([], [])
-                    return (line,)
-
-                def animate(i):
-                    line.set_data(main["index"][:i], main[point]["list"][:i])
-                    ax.set_xlim(
-                        main["index"][i] - main["index"][60],
-                        main["index"][i] + main["index"][60],
-                    )
-                    return (line,)
-
-                length = len(main["index"])
-
-                (line,) = ax.plot(main["index"], main[point]["list"])
-                anim = mpl.animation.FuncAnimation(
-                    fig,
-                    animate,
-                    init_func=init,
-                    frames=length,
-                    interval=float(1000 / fps),
-                    blit=True,
-                    save_count=50,
-                )
-
-                anim_file = str(main["file_path"].joinpath("{0}_{1}_{2}.mov".format(main["file_name"], point, res)))
-
-                print("Saving animated graph to video file {}...".format(anim_file))
-                start = time.time()
-                anim.save(
-                    anim_file,
-                    extra_args=["-c:v", "prores_ks"],
-                    fps=fps,
-                    dpi="figure",
-                    savefig_kwargs={"transparent": True},
-                    progress_callback=calc_progress,
-                )
-                calc_progress(length, length)
-                print("")
-                end = time.time()
-                time_taken = end - start
-                minutes = int(time_taken / 60)
-                hours = int(minutes / 60)
-                seconds = time_taken % 60
-                print("Done! Video took took {0}H : {1}M : {2:0.2f}S to export.".format(hours, minutes, seconds))
-            plt.close()
-
-    if any(item in ["all", "agg"] for item in output_types):
-        return main
+def get_name_model(name: str):
+    name_new, model = name.split("_vmaf")
+    model = "vmaf" + model.strip(".csv").strip(".json").strip(".xml")
+    return name_new, model
 
 
 def parse_arguments():
     main_help = "Plot VMAF to graph, save it as both a static image and as a transparent animated video file.\n"
     main_help += "All of the following arguments have default values within the config file.\n"
     main_help += "Arguments will override the values for the variables set in the config file when specified.\n"
-    main_help += "Settings that are not specified in the config file will use default values as deemed by the program.\n\n"
-    parser = argp.ArgumentParser(description=main_help, formatter_class=argp.RawTextHelpFormatter, add_help=False)
+    main_help += (
+        "Settings that are not specified in the config file will use default values as deemed by the program.\n\n"
+    )
+    parser = argp.ArgumentParser(
+        description=main_help, formatter_class=argp.RawTextHelpFormatter, add_help=False, prog="VMAF Plotter"
+    )
 
-    vmaf_help = "Directory containing subdirectories, which should contain the VMAF report files and distorted video files.\n"
-    vmaf_help += 'The program will scan for inside the provided directories for subdirectories ending with "_results".\n'
-    vmaf_help += "The subdirectories are expected to contain reports in CSV, INI, JSON, and XML format alongisde the distorted video files.\n\n"
+    vmaf_help = (
+        "Directories containing subdirectories, which should contain the VMAF report files and distorted video files.\n"
+    )
+    vmaf_help += (
+        'The program will scan for inside the provided directories for subdirectories ending with "_results".\n'
+    )
+    vmaf_help += 'The subdirectories are expected to contain reports in CSV, JSON, and XML format that end with "_statistics" and be alongside the distorted video files.\n\n'
     parser.add_argument("VMAF", type=str, nargs="*", help=vmaf_help)
 
     optional_args = parser.add_argument_group("Optional arguments")
-    config_help = "Config file (defualt: config.ini).\n"
+    config_help = "Config file (default: config.ini).\n"
     optional_args.add_argument("-c", "--config", dest="config", type=str, help=config_help)
 
     output_help = "Output files location, also defines the name of the output graph.\n"
@@ -266,14 +323,16 @@ def parse_arguments():
     optional_args.add_argument("-o", "--output", dest="output", type=str, help=output_help)
 
     out_types_help = "Choose whether to output a graph image, graph video, stats, or all three (Default: all).\n"
-    out_types_help += "The options are separated by a space if you want to specifiy only one or two of the choices.\n"
-    out_types_help += '- "image" will only output the image graph.\n'
-    out_types_help += '- "video" will only output the video graph.\n'
-    out_types_help += '- "stats" will only print out the statistics to the console and to a file.\n\n'
-    out_types_help += '- "all" will output the image and video graphs.'
+    out_types_help += "The options are separated by a space if you want to specify only one or two of the choices.\n"
+    out_types_help += '- "image" will output the image graph.\n'
+    out_types_help += '- "video" will output the video graph.\n'
+    out_types_help += '- "stats" will print out the statistics to the console and to a file.\n'
+    out_types_help += '- "agg" will collect the stats and write the aggregated statistics.\n'
+    out_types_help += '- "all" will output all the other options.\n\n'
     optional_args.add_argument(
-        "-ot",
+        "-t",
         "--output_types",
+        "--output-types",
         dest="output_types",
         nargs="*",
         type=str,
@@ -283,7 +342,7 @@ def parse_arguments():
     )
 
     data_help = "Choose which data points to show on the graphs and statistics outputs (Default: all).\n"
-    data_help += "The options are separated by a space if you want to specifiy only one or more.\n"
+    data_help += "The options are separated by a space if you want to specify only one or more.\n"
     data_help += '- "vmaf" will only graph the VMAF scores.\n'
     data_help += '- "psnr" will only graph the PSNR scores.\n'
     data_help += '- "ssim" will only graph the SSIM scores.\n'
@@ -302,7 +361,7 @@ def parse_arguments():
 
     res_help = "Choose the resolution for the graph video (Default is 1080).\n"
     res_help += "Note that higher values will mean drastically larger files and take substantially longer to encode.\n"
-    res_help += 'This option is ignored when using option "-ot" / "--output_types" with "none" value.\n\n'
+    res_help += 'This option is ignored when using option "-t" / "--output_types" with "none" value.\n\n'
     optional_args.add_argument(
         "-r",
         "--resolution",
@@ -314,8 +373,7 @@ def parse_arguments():
     )
 
     fps_help = "Specify the FPS for the video file (Default is 60).\n"
-    fps_help += "Note that for VMAF version 2 (which is the default) this value should be specified manually, otherwise the default value of 60fps will be used.\n\n"
-    optional_args.add_argument("-f", "--fps", dest="fps", type=float, help=fps_help)
+    optional_args.add_argument("-f", "--fps", dest="fps", default=60.0, type=float, help=fps_help)
 
     misc_args = parser.add_argument_group("Miscellaneous arguments")
     misc_args.add_argument(
@@ -325,45 +383,24 @@ def parse_arguments():
         default=argp.SUPPRESS,
         help="Show this help message and exit.\n",
     )
+    misc_args.add_argument("-v", "--version", action="version", version="2021-10-10")
 
     args = parser.parse_args()
+    if args.VMAF is None or len(args.VMAF) == 0:
+        parser.exit(status=1, message="No VMAF files or directories were provided.")
 
     print("Collecting list of files...")
+    original_location = None
+    if len(args.VMAF) == 1:
+        original_location = args.VMAF[0]
     vmaf_files = []
     for VMAF in args.VMAF:
-        vmaf_path = Path(VMAF)
-        if vmaf_path.exists():
-            if vmaf_path.is_dir():
-                result_csv = []
-                for i in vmaf_path.rglob("*.[cC][sS][vV]"):
-                    print("Found file {}".format(i.name))
-                    result_csv.append(str(i))
+        vmaf_files += search_handler(VMAF, recurse=True, search_for="report")
 
-                result_ini = []
-                for i in vmaf_path.rglob("*.[iI][nN][iI]"):
-                    print("Found file {}".format(i.name))
-                    result_ini.append(str(i))
-
-                result_json = []
-                for i in vmaf_path.rglob("*.[jJ][sS][oO][nN]"):
-                    print("Found file {}".format(i.name))
-                    result_json.append(str(i))
-
-                result_xml = []
-                for i in vmaf_path.rglob("*.[xX][mM][lL]"):
-                    print("Found file {}".format(i.name))
-                    result_xml.append(str(i))
-
-                vmaf_files = result_csv + result_ini + result_json + result_xml
-            elif vmaf_path.is_file():
-                print("VMAF argument {} is supposed to be a directroy, but not a file.\n")
     args.VMAF = vmaf_files
 
-    if args.fps <= 0:
+    if args.fps <= 0.0:
         parser.exit(status=1, message="Can't use FPS value less than or equal to 0.")
-    # elif not args.fps:
-    #     if int(args.version) == 2:
-    #         parser.error("WANRING: User did not specify an FPS value when using VMAF version 2. The default FPS value of 60 will be used when generating the video file.")
 
     output_files = {}
     if not args.output:
@@ -392,157 +429,471 @@ def parse_arguments():
             args.output_types,
         ]
 
+    if "all" in args.output_types:
+        args.output_types = ["image", "video", "stats", "agg"]
+
     if type(args.datapoints) == str:
         args.datapoints = [
             args.datapoints,
         ]
 
-    return args
+    if "all" in args.datapoints:
+        args.datapoints = ["VMAF", "PSNR", "SSIM", "MS-SSIM"]
+    else:
+        dp = []
+        for point in args.datapoints:
+            if point == "ms_ssim":
+                dp.append("MS-SSIM")
+            else:
+                dp.append(point.upper())
+        args.datapoints = dp
+
+    return args, original_location
 
 
-def check_report(report, config):
-    print("Reading file {}...".format(Path(report).name))
-    return (report, VMAF_Report_Handler(report, config).read_file())
+def check_report(report, config, datapoints):
+    # print("Reading file {}...".format(Path(report).name))
+    return (report, VMAF_Report_Handler(report, config, datapoints=datapoints).read_file())
 
 
-def main(args):
+def main(args, original_location):
+    metrics = [
+        "Mean",
+        "Median",
+        "Standard Deviation",
+        "Mean Absolute Deviation",
+        "Median Absolute Deviation",
+        "99th Percentile",
+        "95th Percentile",
+        "90th Percentile",
+        "75th Percentile",
+        "25th Percentile",
+        "1st Percentile",
+        "0.1st Percentile",
+        "0.01st Percentile",
+        "99th Percentile Absolute Deviation",
+        "95th Percentile Absolute Deviation",
+        "90th Percentile Absolute Deviation",
+        "75th Percentile Absolute Deviation",
+        "25th Percentile Absolute Deviation",
+        "1st Percentile Absolute Deviation",
+        "0.1st Percentile Absolute Deviation",
+        "0.01st Percentile Absolute Deviation",
+        "EWM Average Mean",
+        "EWM Average Median",
+        "EWM Average Standard Deviation",
+        "EWM Average Mean Absolute Deviation",
+        "EWM Average Median Absolute Deviation",
+        "EWM Average 99th Percentile",
+        "EWM Average 95th Percentile",
+        "EWM Average 90th Percentile",
+        "EWM Average 75th Percentile",
+        "EWM Average 25th Percentile",
+        "EWM Average 1st Percentile",
+        "EWM Average 0.1st Percentile",
+        "EWM Average 0.01st Percentile",
+        "EWM Average 99th Percentile Absolute Deviation",
+        "EWM Average 95th Percentile Absolute Deviation",
+        "EWM Average 90th Percentile Absolute Deviation",
+        "EWM Average 75th Percentile Absolute Deviation",
+        "EWM Average 25th Percentile Absolute Deviation",
+        "EWM Average 1st Percentile Absolute Deviation",
+        "EWM Average 0.1st Percentile Absolute Deviation",
+        "EWM Average 0.01st Percentile Absolute Deviation",
+        "EWM Standard Deviation Mean",
+        "EWM Standard Deviation Median",
+        "EWM Standard Deviation Standard Deviation",
+        "EWM Standard Deviation Mean Absolute Deviation",
+        "EWM Standard Deviation Median Absolute Deviation",
+        "EWM Standard Deviation 99th Percentile",
+        "EWM Standard Deviation 95th Percentile",
+        "EWM Standard Deviation 90th Percentile",
+        "EWM Standard Deviation 75th Percentile",
+        "EWM Standard Deviation 25th Percentile",
+        "EWM Standard Deviation 1st Percentile",
+        "EWM Standard Deviation 0.1st Percentile",
+        "EWM Standard Deviation 0.01st Percentile",
+        "EWM Standard Deviation 99th Percentile Absolute Deviation",
+        "EWM Standard Deviation 95th Percentile Absolute Deviation",
+        "EWM Standard Deviation 90th Percentile Absolute Deviation",
+        "EWM Standard Deviation 75th Percentile Absolute Deviation",
+        "EWM Standard Deviation 25th Percentile Absolute Deviation",
+        "EWM Standard Deviation 1st Percentile Absolute Deviation",
+        "EWM Standard Deviation 0.1st Percentile Absolute Deviation",
+        "EWM Standard Deviation 0.01st Percentile Absolute Deviation",
+    ]
+
     data = {}
-    configs = [args.config for i in range(len(args.VMAF))]
+    models = list(set(list([get_name_model(vmaf)[1] for vmaf in args.VMAF])))
+    # configs = [args.config for i in range(len(args.VMAF))]
     print("Reading files for VMAF data...")
 
     had_exception = False
 
-    with cf.ThreadPoolExecutor() as pool_threads:
-        try:
-            ret = pool_threads.map(check_report, args.VMAF, configs)
-            for item in ret:
+    pool_procs = cf.ProcessPoolExecutor()
+    try:
+        # ret = pool_threads.map(check_report, args.VMAF, configs)
+        with tqdm(desc="Getting VMAF reports", total=len(args.VMAF), unit="reports", position=0, leave=True) as pbar:
+            ret = []
+            for vmaf in args.VMAF:
+                ret.append(pool_procs.submit(check_report, vmaf, args.config, datapoints=args.datapoints))
+
+            for task in cf.as_completed(ret):
+                pbar.update()
+                item = task.result()
                 data[item[0]] = item[1]
-        except KeyboardInterrupt:
-            print("KeyboardInterrupt detected, working on shutting down pool...")
-            had_exception = True
-            pool_threads.shutdown()
-        except Exception:
-            traceback.print_exc()
-            had_exception = True
+    except KeyboardInterrupt:
+        print("KeyboardInterrupt detected, working on shutting down pool...")
+        had_exception = True
+        pool_procs.shutdown(cancel_futures=True)
+    except Exception:
+        print_exc()
+        had_exception = True
+        pool_procs.shutdown(cancel_futures=True)
+    pool_procs.shutdown()
+    del pool_procs
 
     if had_exception:
         exit(1)
 
-    with cf.ThreadPoolExecutor() as pool_procs:
-        try:
-            ret = {}
-            for key, value in data.items():
-                ret[key] = pool_procs.submit(
-                    plot_vmaf,
-                    data=value,
-                    fps=args.fps,
-                    res=args.res,
-                    output=args.output[key],
-                    output_types=args.output_types,
-                    datapoints=args.datapoints,
-                    report=key,
-                ).result()
+    font_size = 16
+    if any(item in ["image", "video"] for item in args.output_types):
+        plt.rcParams.update(
+            {
+                "figure.facecolor": (0.0, 0.0, 0.0, 0.0),
+                "figure.edgecolor": "black",
+                "axes.facecolor": (0.0, 0.0, 0.0, 0.0),
+                "savefig.facecolor": (0.0, 0.0, 0.0, 0.0),
+                "legend.facecolor": (0.0, 0.0, 0.0, 0.0),
+                "legend.edgecolor": "black",
+                "legend.frameon": False,
+                "savefig.transparent": True,
+                "animation.codec": "qtrle",
+                # "agg.path.chunksize": 1000000,
+                "path.simplify_threshold": 1,
+            }
+        )
 
-            if any(item in ["all", "agg"] for item in args.output_types):
-                print("Calculating aggregate statistics.")
+        if args.res == "720":
+            plt.rcParams.update({"font.size": 22})
+        elif args.res == "1080":
+            plt.rcParams.update({"font.size": 24})
+            font_size = 19
+        elif args.res == "1440":
+            plt.rcParams.update({"font.size": 26})
+            font_size = 22
+        elif args.res == "4k":
+            plt.rcParams.update({"font.size": 28})
+            font_size = 25
 
-                dp = []
-                if "all" in args.datapoints:
-                    dp = ["vmaf", "psnr", "ssim", "ms_ssim"]
+    ret = {}
+    main = {}
+    pool_procs = cf.ProcessPoolExecutor(max_workers=1)
+    try:
+        for key, value in data.items():
+            ret[
+                pool_procs.submit(
+                    get_stats, data=value, output=args.output[key], datapoints=args.datapoints, report=key
+                )
+            ] = {
+                "task type": "get_stats",
+                "key": key,
+            }
+
+        ret_len = len(ret)
+        mbar = tqdm(desc="Creating metrics", total=ret_len, unit="metrics", position=0, leave=True)
+
+        sbar = None
+        if "stats" in args.output_types:
+            sbar = tqdm(desc="Writing individual stats", total=ret_len, unit="stats", position=1, leave=True)
+
+        pbar = None
+        if any(item in args.output_types for item in ["image", "video"]):
+            pbar = tqdm(desc="Creating data plots", total=ret_len, unit="plots", position=2, leave=True)
+
+        ibar = None
+        if "image" in args.output_types:
+            ibar = tqdm(desc="Saving images", total=ret_len, unit="images", position=3, leave=True)
+
+        vbar = None
+        if "video" in args.output_types:
+            vbar = tqdm(desc="Saving videos", total=ret_len, unit="videos", position=4, leave=True)
+
+        for task in cf.as_completed(ret):
+            if ret[task]["task type"] == "get_stats":
+                mbar.update()
+                main[ret[task]["key"]] = task.result()
+                if "stats" in args.output_types:
+                    ret[pool_procs.submit(write_stats, main[key], args.datapoints, metrics)] = {
+                        "task type": "write_stats",
+                        "key": ret[task]["key"],
+                    }
                 else:
-                    dp = [point for point in args.datapoints]
+                    ret[pool_procs.submit(time.sleep, 0.01)] = {"task type": "write_stats", "key": ret[task]["key"]}
+            elif ret[task]["task type"] == "write_stats":
+                sbar.update()
+                if any(item in args.output_types for item in ["image", "video"]):
+                    ret[pool_procs.submit(create_plot, main[key], args.datapoints, metrics, font_size)] = {
+                        "task type": "plot",
+                        "key": ret[task]["key"],
+                    }
+            elif ret[task]["task type"] == "plot":
+                pbar.update()
+                fig, ax, label = task.result()
+                if "image" in args.output_types:
+                    ret[pool_procs.submit(create_image, main[key], args.datapoints, fig, font_size, label)] = {
+                        "task type": "image",
+                        "key": ret[task]["key"],
+                    }
+                if "video" in args.output_types:
+                    ret[pool_procs.submit(create_video, main[key], args.datapoints, args.res, args.fps, fig, ax)] = {
+                        "task type": "video",
+                        "key": ret[task]["key"],
+                    }
+            elif ret[task]["task type"] == "image":
+                ibar.update()
+            elif ret[task]["task type"] == "video":
+                vbar.update()
+    except KeyboardInterrupt:
+        print("KeyboardInterrupt detected, working on shutting down pool...")
+        had_exception = True
+        pool_procs.shutdown(cancel_futures=True)
+    except Exception:
+        print_exc()
+        had_exception = True
+    else:
+        cf.wait(ret)
+        pool_procs.shutdown()
+        if mbar:
+            mbar.close()
 
-                print("Aggregating initial data for all reports...")
-                df_dict = {}
-                for rep, main in ret.items():
-                    df_dict[Path(rep).name] = {}
-                    for point in dp:
-                        for k, v in main[point].items():
-                            if k in [
-                                "mean",
-                                "median",
-                                "standard_deviation",
-                                "perc_1",
-                                "perc_01",
-                                "perc_001",
-                            ]:
-                                df_dict[Path(rep).name]["{}_{}".format(point, k)] = v
+        if sbar:
+            sbar.close()
 
-                df = pd.DataFrame(df_dict)
-                df = df.transpose()
+        if pbar:
+            pbar.close()
 
-                print("Aggregating rankings for each metric...")
-                df2 = pd.DataFrame()
-                for point in dp:
-                    for k in [
-                        "mean",
-                        "median",
-                        "standard_deviation",
-                        "perc_1",
-                        "perc_01",
-                        "perc_001",
-                    ]:
-                        item = "{}_{}".format(point, k)
-                        item_rank = "{}_RANK".format(item)
-                        if k == "standard_deviation":
-                            df2[item_rank] = df[item].rank()
-                        else:
-                            df2[item_rank] = df[item].rank(ascending=False)
+        if ibar:
+            ibar.close()
 
-                df2["OVERALL SCORE"] = df2.sum(axis=1)
+        if vbar:
+            vbar.close()
 
-                df = df.transpose()
-
-                print("Adding rows for top scores to main table...")
-                df["Top Score"] = pd.Series(dtype="float64")
-                top_score = {}
-                top_score_file = {}
-                for rep, main in ret.items():
-                    for point in dp:
-                        for k in [
-                            "mean",
-                            "median",
-                            "standard_deviation",
-                            "perc_1",
-                            "perc_01",
-                            "perc_001",
-                        ]:
-                            item = "{}_{}".format(point, k)
-                            if k == "standard_deviation":
-                                top_score[item] = df.min(axis=1)[item]
-                                top_score_file[item] = df.idxmin(axis=1)[item]
-                            else:
-                                top_score[item] = df.max(axis=1)[item]
-                                top_score_file[item] = df.idxmax(axis=1)[item]
-
-                df["Top Score"] = pd.Series(top_score)
-                df["Top Score File"] = pd.Series(top_score_file)
-                del top_score
-                del top_score_file
-
-                df = df.transpose()
-
-                print("Aggregate data is {} bytes".format(df.memory_usage(deep=True).sum() + df2.memory_usage(deep=True).sum()))
-
-                df_file = str(Path(list(args.output.values())[0]).joinpath("aggregate_stats.xlsx"))
-                print("Saving aggregate statistics to file {}...".format(df_file))
-                Path(df_file).unlink(missing_ok=True)
-                with pd.ExcelWriter(df_file, mode="w") as writer:
-                    df.to_excel(writer, sheet_name="Scores")
-                    df2.to_excel(writer, sheet_name="Rankings")
-
-        except KeyboardInterrupt:
-            print("KeyboardInterrupt detected, working on shutting down pool...")
-            had_exception = True
-            pool_procs.shutdown()
-        except Exception:
-            traceback.print_exc()
-            had_exception = True
+    del pool_procs
 
     if had_exception:
         exit(1)
+
+    plt.close()
+
+    if "agg" in args.output_types:
+        print("Calculating aggregate statistics.")
+
+        print("Aggregating initial data for all reports...")
+
+        # Create dict for tracking scores of individual dists using a specific model
+        dict_scores = {}
+        dict_scores_dist = {}
+        for model in models:
+            dict_scores[model] = {}
+
+        for rep in sorted(main.keys()):
+            name, model = get_name_model(Path(rep).name)
+            dict_scores[model][name] = {}
+            if name not in dict_scores_dist.keys():
+                dict_scores_dist[name] = {}
+            for point in args.datapoints:
+                for metric, value in main[rep][point].items():
+                    if metric.lower() in ["dataset", "maximum"]:
+                        continue
+                    dict_scores[model][name]["{} {}".format(point, metric)] = value
+                    dict_scores_dist[name]["{} {} {}".format(model, point, metric)] = value
+            dict_scores_dist[name]["File Size"] = main[rep]["File Size"]
+
+        dist_tmp = OrderedDict()
+        for k in sorted(dict_scores_dist.keys()):
+            dist_tmp[k] = {}
+            for key in sorted(dict_scores_dist[k].keys()):
+                dist_tmp[k][key] = dict_scores_dist[k][key]
+
+        dict_scores_dist = dict(dist_tmp)
+        del dist_tmp
+
+        df_scores = {}
+        df_rankings = {}
+
+        for model in sorted(dict_scores.keys()):
+            df_scores[model] = pd.DataFrame(dict_scores[model], dtype="float64").transpose()
+            df_rankings[model] = pd.DataFrame(dtype="float64")
+
+        # for model in df_scores.keys():
+        #     for item in df_scores[model].keys():a
+        #         df_scores[model][item] = pd.Series(df_scores[model][item], dtype="float64")
+
+        df_scores_dist = pd.DataFrame(dict_scores_dist, dtype="float64")
+        dict_scores_dist_rankings = {}
+
+        print("Aggregating rankings for each metric...")
+        # Rankings for distorted files on a per-model basis
+        for model in sorted(df_scores.keys()):
+            for point in args.datapoints:
+                for metric in metrics:
+                    item = "{} {}".format(point, metric)
+                    item_rank = "{} RANK".format(item)
+                    if metric in [
+                        "Standard Deviation",
+                        "Mean Absolute Deviation",
+                        "Median Absolute Deviation",
+                        "99th Percentile Absolute Deviation",
+                        "95th Percentile Absolute Deviation",
+                        "90th Percentile Absolute Deviation",
+                        "75th Percentile Absolute Deviation",
+                        "EWM Average Standard Deviation",
+                        "EWM Average Mean Absolute Deviation",
+                        "EWM Average Median Absolute Deviation",
+                        "EWM Average 99th Percentile Absolute Deviation",
+                        "EWM Average 95th Percentile Absolute Deviation",
+                        "EWM Average 90th Percentile Absolute Deviation",
+                        "EWM Average 75th Percentile Absolute Deviation",
+                        "EWM Standard Deviation Standard Deviation",
+                        "EWM Standard Deviation Mean Absolute Deviation",
+                        "EWM Standard Deviation Median Absolute Deviation",
+                        "EWM Standard Deviation 99th Percentile Absolute Deviation",
+                        "EWM Standard Deviation 95th Percentile Absolute Deviation",
+                        "EWM Standard Deviation 90th Percentile Absolute Deviation",
+                        "EWM Standard Deviation 75th Percentile Absolute Deviation",
+                        "File Size",
+                    ]:
+                        df_rankings[model][item_rank] = df_scores[model][item].rank()
+                    else:
+                        df_rankings[model][item_rank] = df_scores[model][item].rank(ascending=False)
+
+            df_rankings[model]["OVERALL SCORE"] = df_rankings[model].sum(axis=1)
+            df_scores[model] = df_scores[model].transpose()
+
+        # Rankings for distorted files among all models
+        for name in sorted(df_scores_dist.keys()):
+            if name not in dict_scores_dist_rankings:
+                dict_scores_dist_rankings[name] = pd.Series(dtype="float64")
+            for model in df_scores.keys():
+                for point in args.datapoints:
+                    dict_scores_dist_rankings[name]["File Size"] = df_scores_dist.transpose()["File Size"].rank()[name]
+                    for metric in metrics:
+                        model_item = "{} {} {}".format(model, point, metric)
+                        model_item_rank = "{} RANK".format(model_item)
+                        if metric in [
+                            "Standard Deviation",
+                            "Mean Absolute Deviation",
+                            "Median Absolute Deviation",
+                            "99th Percentile Absolute Deviation",
+                            "95th Percentile Absolute Deviation",
+                            "90th Percentile Absolute Deviation",
+                            "75th Percentile Absolute Deviation",
+                            "EWM Average Standard Deviation",
+                            "EWM Average Mean Absolute Deviation",
+                            "EWM Average Median Absolute Deviation",
+                            "EWM Average 99th Percentile Absolute Deviation",
+                            "EWM Average 95th Percentile Absolute Deviation",
+                            "EWM Average 90th Percentile Absolute Deviation",
+                            "EWM Average 75th Percentile Absolute Deviation",
+                            "EWM Standard Deviation Standard Deviation",
+                            "EWM Standard Deviation Mean Absolute Deviation",
+                            "EWM Standard Deviation Median Absolute Deviation",
+                            "EWM Standard Deviation 99th Percentile Absolute Deviation",
+                            "EWM Standard Deviation 95th Percentile Absolute Deviation",
+                            "EWM Standard Deviation 90th Percentile Absolute Deviation",
+                            "EWM Standard Deviation 75th Percentile Absolute Deviation",
+                        ]:
+                            dict_scores_dist_rankings[name][model_item_rank] = df_scores_dist.transpose()[
+                                model_item
+                            ].rank()[name]
+                        else:
+                            dict_scores_dist_rankings[name][model_item_rank] = df_scores_dist.transpose()[
+                                model_item
+                            ].rank(ascending=False)[name]
+        df_scores_dist = df_scores_dist.transpose()
+        dist_rank_temp = OrderedDict()
+        for k in sorted(dict_scores_dist_rankings.keys()):
+            dist_rank_temp[k] = dict_scores_dist_rankings[k].sort_values()
+        dict_scores_dist_rankings = dict(dist_rank_temp)
+        del dist_rank_temp
+        df_scores_dist_rankings = pd.DataFrame(dict_scores_dist_rankings, dtype="float64")
+        df_scores_dist_rankings = df_scores_dist_rankings.transpose()
+        df_scores_dist_rankings["OVERALL SCORE"] = df_scores_dist_rankings.sum(axis=1)
+
+        for name in sorted(df_scores_dist.keys()):
+            df_scores_dist[name] = df_scores_dist[name].transpose()
+
+        print("Adding rows for top scores to main table...")
+        for model in sorted(df_scores.keys()):
+            top_score = {}
+            top_score_file = {}
+            for point in args.datapoints:
+                for metric in metrics:
+                    item = "{} {}".format(point, metric)
+                    # print("model: {}".format(model))
+                    # print("item: {}".format(item))
+                    # print("df_scores[{}]:\n{}".format(model, df_scores[model]))
+                    # print("\ndf_scores[{}].transpose():\n{}".format(model, df_scores[model].transpose()))
+                    # print("\ndf_scores[{}].transpose()[{}]:\n{}".format(model, item, df_scores[model].transpose()[item]))
+                    # exit()
+                    if metric in [
+                        "Standard Deviation",
+                        "Mean Absolute Deviation",
+                        "Median Absolute Deviation",
+                        "99th Percentile Absolute Deviation",
+                        "95th Percentile Absolute Deviation",
+                        "90th Percentile Absolute Deviation",
+                        "75th Percentile Absolute Deviation",
+                        "EWM Average Standard Deviation",
+                        "EWM Average Mean Absolute Deviation",
+                        "EWM Average Median Absolute Deviation",
+                        "EWM Average 99th Percentile Absolute Deviation",
+                        "EWM Average 95th Percentile Absolute Deviation",
+                        "EWM Average 90th Percentile Absolute Deviation",
+                        "EWM Average 75th Percentile Absolute Deviation",
+                        "EWM Standard Deviation Standard Deviation",
+                        "EWM Standard Deviation Mean Absolute Deviation",
+                        "EWM Standard Deviation Median Absolute Deviation",
+                        "EWM Standard Deviation 99th Percentile Absolute Deviation",
+                        "EWM Standard Deviation 95th Percentile Absolute Deviation",
+                        "EWM Standard Deviation 90th Percentile Absolute Deviation",
+                        "EWM Standard Deviation 75th Percentile Absolute Deviation",
+                        "File Size",
+                    ]:
+                        top_score[item] = df_scores[model].transpose().min()[item]
+                        top_score_file[item] = df_scores[model].transpose().idxmin()[item]
+                    else:
+                        top_score[item] = df_scores[model].transpose().max()[item]
+                        top_score_file[item] = df_scores[model].transpose().idxmax()[item]
+
+            df_scores[model]["Top Score"] = pd.Series(top_score, dtype="float64")
+            df_scores[model]["Top Score File"] = pd.Series(top_score_file)
+            del top_score
+            del top_score_file
+
+            df_scores[model] = df_scores[model].transpose()
+
+        agg_size = sum([frame.memory_usage(deep=True).sum() for frame in df_scores.values()]) + sum(
+            [frame.memory_usage(deep=True).sum() for frame in df_rankings.values()]
+        )
+        print("Aggregate data is {} bytes".format(agg_size))
+
+        df_file = None
+        if original_location:
+            df_file = str(Path(original_location).joinpath("aggregate_stats.xlsx"))
+        else:
+            df_file = str(Path(__file__).parent.joinpath("aggregate_stats.xlsx"))
+        print("Saving aggregate statistics to file {}...".format(df_file))
+        Path(df_file).unlink(missing_ok=True)
+        with pd.ExcelWriter(df_file, mode="w") as writer:
+            for model in df_scores.keys():
+                df_scores[model].to_excel(writer, sheet_name="{} Scores".format(model))
+                df_rankings[model].to_excel(writer, sheet_name="{} Rankings".format(model))
+            df_scores_dist.to_excel(writer, sheet_name="Dist Scores")
+            df_scores_dist_rankings.to_excel(writer, sheet_name="Dist Rankings")
 
 
 if __name__ == "__main__":
-    args = parse_arguments()
-    main(args)
+    args, original_location = parse_arguments()
+    main(args, original_location)

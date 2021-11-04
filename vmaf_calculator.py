@@ -1,48 +1,37 @@
 import argparse as argp
 import concurrent.futures as cf
-import datetime as dt
-import json
 import subprocess as sp
-import time
-import traceback
+from datetime import timedelta
+from json import dump, load
 from pathlib import Path
+from time import time
+from traceback import print_exc
 
 import ffmpy
 from tqdm import tqdm
 
-from vmaf_common import bytes2human, print_dict, search_handler
+from vmaf_common import bytes2human, search_handler
 
 
 def parse_arguments() -> argp.Namespace:
     """Parse user given arguments for calculating VMAF."""
-    main_help = "Multithreaded VMAF log file generator through FFmpeg.\n"
-    main_help += 'The program expects a single "reference" file.\n'
-    main_help += 'Specifying a single "distorted" file will only run a single VMAF calculation instance between it and the "reference" file.\n'
-    main_help += 'Specifying a single "reference" file and multiple "distorted" files will compare the "reference" file against all the "disrotred" files.\n'
-    main_help += 'Specifying a directory for the "distorted" argument will scan the diretory for any MP4 and MKV files to compare against the "reference" file.\n\n'
+    main_help = "Multithreaded VMAF log file generator through FFmpeg.\n\n"
     parser = argp.ArgumentParser(
-        description=main_help,
-        formatter_class=argp.RawTextHelpFormatter,
-        add_help=False,
+        description=main_help, formatter_class=argp.RawTextHelpFormatter, add_help=False, prog="VMAF Calculator"
     )
 
-    parser.add_argument(
-        "-r",
-        "--reference",
-        dest="reference",
-        type=str,
-        required=True,
-        help="reference video file().\n",
+    reference_help = "Reference video file().\n"
+    reference_help += 'The program expects a single "reference" file.\n\n'
+    parser.add_argument("-r", "--reference", dest="reference", type=str, required=True, help=reference_help)
+
+    distorted_help = "Distorted video file().\n"
+    distorted_help += 'Specifying a single "distorted" file will only run a single VMAF calculation instance between it and the "reference" file.\n'
+    distorted_help += (
+        'Specifying multiple "distorted" files will compare the "reference" file against all the "distorted" files.\n'
     )
-    parser.add_argument(
-        "-d",
-        "--distorted",
-        dest="distorted",
-        nargs="*",
-        type=str,
-        required=True,
-        help="distorted video file().\n\n",
-    )
+    distorted_help += 'Specifying a directory for the "distorted" argument will scan the diretory for any MP4 and MKV files to compare against the "reference" file.\n'
+    distorted_help += "You can provide any combination of files and directories.\n\n"
+    parser.add_argument("-d", "--distorted", dest="distorted", nargs="*", type=str, help=distorted_help)
 
     optional_args = parser.add_argument_group("Optional arguments")
     ffmpeg_help = 'Specify the path to the FFmpeg executable (Default is "ffmpeg" which assumes that FFmpeg is part of your "Path" environment variable).\n'
@@ -50,7 +39,9 @@ def parse_arguments() -> argp.Namespace:
     optional_args.add_argument("-f", "--ffmpeg", dest="ffmpeg", default="ffmpeg", help=ffmpeg_help)
 
     threads_help = 'Specify number of threads to be used for each process (Default is 0 for "autodetect").\n'
-    threads_help += "Specifying more threads than there are available will clamp the value down to 1 thread for safety purposes.\n"
+    threads_help += (
+        "Specifying more threads than there are available will clamp the value down to 1 thread for safety purposes.\n"
+    )
     threads_help += "A single VMAF process will effectively max out at 12 threads - any more will provide little to no performance increase.\n"
     threads_help += "The recommended value of threads to use per process is 4-6.\n\n"
     optional_args.add_argument("-t", "--threads", dest="threads", type=int, default=0, help=threads_help)
@@ -59,30 +50,17 @@ def parse_arguments() -> argp.Namespace:
     proc_help += "Specifying more processes than there are available CPU threads will clamp the value down to the maximum number of threads on the system for a total of 1 thread per process.\n\n"
     optional_args.add_argument("-p", "--processes", dest="processes", type=int, default=1, help=proc_help)
 
+    continue_help = (
+        "Specify whether or not to look for a save state file for the given reference video file (Default is True).\n\n"
+    )
+    optional_args.add_argument("-c", "--continue", dest="should_continue", action="store_false", help=continue_help)
+
     # rem_threads_help = "Specify whether or not to use remaining threads that don't make a complete process to use for an process (Default is off).\n"
     # rem_threads_help += "For example, if your system has 16 threads, and you are running 5 processes with 3 threads each, then you will be using 4 * 3 threads, which is 12.\n"
     # rem_threads_help += "This means you will have 1 thread that will remain unused.\n"
     # rem_threads_help += "Using this option would run one more VMAF calculation process with only the single remaining thread.\n"
     # rem_threads_help += "This option is not recommended, as the unused threads will be used to keep the system responsive during the VMAF calculations.\n\n"
-    # optional_args.add_argument(
-    #     "-u",
-    #     "--use-rem-threads",
-    #     dest="use_remaining_threads",
-    #     action="store_true",
-    #     default=False,
-    #     help=rem_threads_help,
-    # )
-
-    vmaf_version_help = "Specify the VMAF version to use (Default is 2).\n\n"
-    optional_args.add_argument(
-        "-v",
-        "--vmaf-version",
-        dest="vmaf_version",
-        type=int,
-        choices=[1, 2],
-        default=2,
-        help=vmaf_version_help,
-    )
+    # optional_args.add_argument("-u", "--use-rem-threads", dest="use_remaining_threads", action="store_true", default=False, help=rem_threads_help)
 
     psnr_help = "Enable calculating PSNR values (Default is off).\n\n"
     optional_args.add_argument("--psnr", dest="psnr", action="store_true", help=psnr_help)
@@ -101,28 +79,17 @@ def parse_arguments() -> argp.Namespace:
 
     model_help = "Specify the VMAF model files to use. This argument expects a list of model files to use.\n"
     model_help += "The program will calculate the VMAF scores for every distorted file, for every model given.\n"
-    model_help += "Note that VMAF version 1 requires PKL model files, while VMAF version 2 uses JSON model files.\n\n"
-    optional_args.add_argument(
-        "-m",
-        "--model",
-        dest="model",
-        nargs="*",
-        type=str,
-        required=True,
-        help=model_help,
-    )
+    model_help += "Note that VMAF models come in JSON format, and the program will only accept those models.\n\n"
+    optional_args.add_argument("-m", "--model", dest="model", nargs="*", type=str, help=model_help)
 
     log_format_help = 'Specify the VMAF log file format (Default is "xml").\n\n'
     optional_args.add_argument(
-        "-l",
-        "--log-format",
-        dest="log_format",
-        choices=["xml", "csv", "json"],
-        default="xml",
-        help=log_format_help,
+        "-l", "--log-format", dest="log_format", choices=["xml", "csv", "json"], default="xml", help=log_format_help
     )
 
-    hwaccel_help = "Enable FFmpeg to automatically attempt to use hardware acceleration for video decoding (default is off).\n"
+    hwaccel_help = (
+        "Enable FFmpeg to automatically attempt to use hardware acceleration for video decoding (default is off).\n"
+    )
     hwaccel_help += "Not specifying this option means FFmpeg will use only the CPU for video decoding.\n"
     hwaccel_help += "Enabling this option means FFmpeg will use attempt to use the GPU for video decoding instead.\n"
     hwaccel_help += "This could improve calculation speed, but your mileage may vary.\n\n"
@@ -136,8 +103,16 @@ def parse_arguments() -> argp.Namespace:
         default=argp.SUPPRESS,
         help="Show this help message and exit.\n",
     )
+    misc_args.add_argument("-v", "--version", action="version", version="2021-10-10")
 
-    return parser.parse_args()
+    args = parser.parse_args()
+
+    if (not args.model or not args.distorted) and not args.should_continue:
+        raise argp.ArgumentParser.error(
+            "User specified not to use an existing completions file and did not provide distorted video files and/or VMAF models."
+        )
+
+    return args
 
 
 def read_completions(ref):
@@ -145,7 +120,7 @@ def read_completions(ref):
     completions_file = Path(ref_path.parent.joinpath("{}_completions.json".format(ref_path.stem)))
     if completions_file.exists():
         with open(str(completions_file), "r") as reader:
-            return json.load(reader)
+            return load(reader)
     else:
         return {}
 
@@ -154,69 +129,103 @@ def write_state(ref, completions):
     ref_path = Path(args.reference)
     completions_file = Path(ref_path.parent.joinpath("{}_completions.json".format(ref_path.stem)))
     with open(str(completions_file), "w") as reader:
-        json.dump(completions, reader, indent=4, sort_keys=True)
+        dump(completions, reader, indent=4, sort_keys=True)
 
 
 if __name__ == "__main__":
-    # Get start time of program
-
     # Parse command line arguments
     args = parse_arguments()
 
     # Create main input/output dictionary
     io = {}
+
+    # Make sure the reference video file exists
     try:
         search_handler(args.reference)
     except OSError as ose:
         print(ose)
         exit(1)
 
-    try:
-        dist_files = []
-        for dist in args.distorted:
-            dist_files += search_handler(dist, search_for="distorted")
+    # Load the completions file for the given reference video file, if it exists
+    completions = {}
+    if args.should_continue:
+        completions = read_completions(args.reference)
 
-        dist_files = set(dist_files)
-        if len(dist_files) == 0:
-            raise OSError("ERROR: Could not find any distorted files. The program will now exit.")
+    # Exit if we can't get any dis
+    if len(completions) == 0 and args.distorted is None:
+        raise OSError(
+            "Could not find any existing completions JSON files and no distorted files were provided. The program will now exit."
+        )
 
-        for dist in dist_files:
-            io[dist] = {}
-    except OSError as ose:
-        print(ose)
-        exit(1)
+    # Look for distorted video files in the provided locations
+    dist_files = []
+    if args.distorted:
+        try:
+            # Check if given distorted files exist, and scan for video files inside
+            # any given directories.
+            for dist in args.distorted:
+                dist_files += search_handler(dist, search_for="distorted")
+
+            # Remove any duplicate distorted files
+            dist_files = list(set(dist_files))
+        except OSError as ose:
+            print(ose)
+            exit(1)
+
+        # If no distorted files are found and no completions file exists, then
+        # we exit
+        if len(dist_files) == 0 and len(completions) == 0 and not args.should_continue:
+            msg = "Could not find any distorted files in the provided location {} and no completions save state file was provided."
+            msg += "The program will now exit."
+            raise OSError(msg.format(args.distorted))
 
     # Validate VMAF model files
-    try:
-        tmp_models = []
-        for model in args.model:
-            tmp_models += search_handler(model, search_for="model", vmaf_version=args.vmaf_version)
+    models = []
+    if args.model:
+        try:
+            for model in args.model:
+                models += search_handler(model, search_for="model")
 
-        if len(tmp_models) == 0:
-            raise OSError("ERROR: Could not find any VMAF model files. The program will now exit.")
+            if len(models) == 0:
+                raise OSError("Could not find any VMAF model files. The program will now exit.")
 
-        for dist in io.keys():
-            for model in tmp_models:
-                io[dist][model] = {}
+            for dist in dist_files:
+                io[dist] = {}
+                for model in models:
+                    io[dist][model] = {}
+        except OSError as ose:
+            print(ose)
+            exit(1)
 
-    except OSError as ose:
-        print(ose)
-        exit(1)
-
-    completions = read_completions(args.reference)
+    # If there were any distorted files in the completions file
     if len(completions) > 0:
+        for dist in dist_files:
+            # If the distorted file found from the provided args already
+            # exists in the completions file, then we check for the status
+            # of all the models it already ran through
+            if dist in completions:
+                # Check if the completions status for all models for the
+                # distorted video files are some combination of DONE or MOVED
+                check = [completions[dist][model]["status"] in ["DONE", "MOVED"] for model in completions[dist].keys()]
+                if all(check):
+                    # Move the distorted video file and change its' status to MOVED
+                    Path(dist).replace(
+                        Path(dist).parent.joinpath("{}_results".format(Path(dist).stem), Path(dist).name)
+                    )
+                    for model in completions[dist].keys():
+                        completions[dist][model]["status"] = "MOVED"
+
+        # Move any dist-model pairs into the io dictionary
         for dist, models in completions.items():
+            if dist not in io:
+                io[dist] = {}
             for model in models.keys():
-                if dist in io:
-                    if model in io[dist]:
-                        io[dist][model]["status"] = completions[dist][model]["status"]
-                    else:
-                        io[dist][model] = {}
-                        io[dist][model]["status"] = "NOT STARTED"
+                if model in io[dist]:
+                    io[dist][model]["status"] = completions[dist][model]["status"]
                 else:
-                    io[dist] = {}
                     io[dist][model] = {}
                     io[dist][model]["status"] = "NOT STARTED"
+    del dist_files
     del completions
 
     for dist, models in io.items():
@@ -225,7 +234,6 @@ if __name__ == "__main__":
                 io[dist][model]["status"] = "NOT STARTED"
 
     write_state(args.reference, io)
-
     aggregate = {}
 
     # Beginning of libvmaf filter
@@ -298,7 +306,7 @@ if __name__ == "__main__":
         decode += " -hwaccel auto"
         # decode += " -c:v h264_cuvid "
 
-    # Holds the concurrent.futures.Future objects from the ThreadPoolExectuor's
+    # Holds the concurrent.futures.Future objects from the ThreadPoolExecutor's
     # submit calls as keys, with the distorted video file name and VMAF model
     # name as values
     my_ffs = {}
@@ -309,17 +317,17 @@ if __name__ == "__main__":
     for dist in io.keys():
         num_models[dist] = 0
     dist_finished = 0
-    dists_total = len(io) * len(list(io.values())[0])
+    dists_total = len(io.keys()) * len(list(io.values())[0])
 
     # Semi-global check if the Futures were cancelled
-    # If this is set to True at any oint, then we stop writing any aggregate
+    # If this is set to True at any point, then we stop writing any aggregate
     # score files and do not move the video files
     was_cancelled = False
 
     cf_handler = cf.ThreadPoolExecutor(max_workers=args.processes)
-    start = time.time()
+    start = time()
     try:
-        # For every ditorted video file
+        # For every distorted video file
         for dist, models in io.items():
             # For every model to test the distorted video with
             for model, data in models.items():
@@ -341,7 +349,11 @@ if __name__ == "__main__":
                 )
 
                 # Submit the actual run Future as a key
-                my_ffs[cf_handler.submit(ff_tmp.run, stdout=sp.PIPE, stderr=sp.PIPE)] = {"ff": ff_tmp, "dist": dist, "model": model}
+                my_ffs[cf_handler.submit(ff_tmp.run, stdout=sp.PIPE, stderr=sp.PIPE)] = {
+                    "ff": ff_tmp,
+                    "dist": dist,
+                    "model": model,
+                }
                 io[dist][model]["status"] = "STARTED"
 
         # After submitting all tasks, have a tqdm progress bar measure the progress
@@ -355,7 +367,6 @@ if __name__ == "__main__":
             pbar.set_postfix({"Distorted videos finished": "0 : 0%"})
             # Wait and iterate over completed Futures
             for task in cf.as_completed(my_ffs):
-                pbar.set_postfix({"Distorted videos finished": str("{} : {}%".format(dist_finished, dist_finished / dists_total))})
                 # Dict containing the "dist" and "model" keys
                 out = my_ffs[task]
                 dist = out["dist"]
@@ -396,6 +407,13 @@ if __name__ == "__main__":
                 # to the log location
                 if num_models[dist] == len(io[dist].keys()):
                     dist_finished += 1
+                    pbar.set_postfix(
+                        {
+                            "Distorted videos finished": str(
+                                "{} : {}%".format(dist_finished, dist_finished / io.keys() * 100)
+                            )
+                        }
+                    )
                     # Move the dist video file to the log location
                     dist_path = Path(dist)
                     dist_path_new = aggregate[dist]["log"].parent.joinpath(dist_path.name)
@@ -421,12 +439,12 @@ if __name__ == "__main__":
                         aggregate_file.write(tmp_msg.format(aggregate[dist]["score"]))
 
                         # Convert file size to a more human-readable format
-                        size_converted, size_unit = bytes2human(aggregate[dist]["file_size"])
+                        size_converted = bytes2human(aggregate[dist]["file_size"])
 
                         # Write the size in bytes & the size in human-readable
                         # format to the aggregate log file
-                        tmp_msg = "File Size: {}B = {}{}\n"
-                        aggregate_file.write(tmp_msg.format(aggregate[dist]["file_size"], size_converted, size_unit))
+                        tmp_msg = "File Size: {}B = {}\n"
+                        aggregate_file.write(tmp_msg.format(aggregate[dist]["file_size"], size_converted))
 
                     for model in models.keys():
                         io[dist][model]["status"] = "MOVED"
@@ -438,7 +456,7 @@ if __name__ == "__main__":
         if type(e) in [KeyboardInterrupt, cf.CancelledError]:
             print("KeyboardInterrupt detected, working on shutting down pool...")
         else:
-            traceback.print_exc()
+            print_exc()
         was_cancelled = True
         cf_handler.shutdown(wait=False, cancel_futures=True)
         cancellations = {task: False for task in my_ffs.keys()}
@@ -451,10 +469,12 @@ if __name__ == "__main__":
                 if task.running() or (task.done() and task.cancelled()) or task.exception():
                     if info["ff"].process:
                         print("Shutting down {}...".format(info["ff"].process.pid))
-                        info["ff"].process.terminate()
-                        info["ff"].process.kill()
-                        info["ff"].process.wait()
+                        while info["ff"].process.poll() is None:
+                            info["ff"].process.terminate()
+                            info["ff"].process.kill()
+                            info["ff"].process.wait()
                         if io[dist][model]["status"] not in ["DONE", "MOVED"]:
+                            time.sleep(0.5)
                             print("\tDeleting related log file:\n\t{}...".format(Path(io[dist][model]["log_path"])))
                             Path(io[dist][model]["log_path"]).unlink(missing_ok=True)
                         cancellations[task] = True
@@ -470,15 +490,15 @@ if __name__ == "__main__":
     if was_cancelled:
         exit(1)
 
-    end = time.time()
+    end = time()
     total = end - start
 
     # Show how long it took to run this entire program
-    print("Program took {}".format(dt.timedelta(seconds=total)))
-    time_avg = dt.timedelta(seconds=total / len(my_ffs))
+    print("Program took {}".format(timedelta(seconds=total)))
+    time_avg = timedelta(seconds=total / len(my_ffs))
     print("All calculations took an average of {}\n".format(time_avg))
 
-    # Print out all the releveant info to the user
+    # Print out all the relevant info to the user
     print("The scores are as follows:")
     print("Reference: {}".format(args.reference))
     for dist, models in io.items():

@@ -25,7 +25,9 @@ class VMAF_Calculator:
         self._mp_handler = proc_handler(self._log)
 
         # Create a Config_Reader object with the config file.
-        self._config = VMAF_Config_Handler(log=self._log, args=self._args, mp_handler=self._mp_handler).get_config_data()
+        self._config = VMAF_Config_Handler(
+            log=self._log, args=self._args, mp_handler=self._mp_handler
+        ).get_config_data()
 
         self._ffmpy = FFmpy_Handler(self._config["General"]["ffmpeg"], log=self._log)
 
@@ -43,7 +45,9 @@ class VMAF_Calculator:
         """Parse user given arguments for calculating VMAF."""
         main_help = "Multithreaded VMAF log file generator through FFmpeg.\n"
         main_help += "The 1st required argument is the Distorted Video file.\n"
-        main_help += "The 2nd required argument is the Reference Video file that the Distorted Video is compared against.\n"
+        main_help += (
+            "The 2nd required argument is the Reference Video file that the Distorted Video is compared against.\n"
+        )
         parser = argp.ArgumentParser(
             description=main_help,
             formatter_class=argp.RawTextHelpFormatter,
@@ -72,7 +76,9 @@ class VMAF_Calculator:
         rem_threads_help = "Specify whether or not to use remaining threads that don't make a complete process to use for an process (Default is off).\n"
         rem_threads_help += "For example, if your system has 16 threads, and you are running 5 processes with 3 threads each, then you will be using 4 * 3 threads, which is 12.\n"
         rem_threads_help += "This means you will have 1 thread that will remain unused.\n"
-        rem_threads_help += "Using this option would run one more VMAF calculation process with only the single remaining thread.\n"
+        rem_threads_help += (
+            "Using this option would run one more VMAF calculation process with only the single remaining thread.\n"
+        )
         rem_threads_help += "This option is not recommended, as the unused threads will be used to keep the system responsive during the VMAF calculations.\n\n"
         optional_args.add_argument(
             "-u",
@@ -108,7 +114,9 @@ class VMAF_Calculator:
         optional_args.add_argument("--subsamples", dest="subsamples", help=subsamples_help)
 
         model_help = 'Specify the VMAF model file to use (Default is "vmaf_v0.6.1.pkl" for VMAF version 1 and "vmaf_v0.6.1.json" for VMAF version 2).\n'
-        model_help += "By default, this variable assumes the model file is located in the same location as this script.\n\n"
+        model_help += (
+            "By default, this variable assumes the model file is located in the same location as this script.\n\n"
+        )
         optional_args.add_argument("-m", "--model", dest="model", help=model_help)
 
         log_format_help = 'Specify the VMAF log file format (Default is "xml").\n\n'
@@ -123,9 +131,13 @@ class VMAF_Calculator:
         log_path_help = 'Specify the VMAF log path and file name (Default is "vmaf").\n\n'
         optional_args.add_argument("-n", "--log-name", dest="log_path", help=log_path_help)
 
-        hwaccel_help = "Enable FFmpeg to automatically attempt to use hardware acceleration for video decoding (default is off).\n"
+        hwaccel_help = (
+            "Enable FFmpeg to automatically attempt to use hardware acceleration for video decoding (default is off).\n"
+        )
         hwaccel_help += "Not specifying this option means FFmpeg will use only the CPU for video decoding.\n"
-        hwaccel_help += "Enabling this option means FFmpeg will use attempt to use the GPU for video decoding instead.\n"
+        hwaccel_help += (
+            "Enabling this option means FFmpeg will use attempt to use the GPU for video decoding instead.\n"
+        )
         hwaccel_help += "This could improve calculation speed, but your mileage may vary.\n\n"
         optional_args.add_argument("--hwaccel", dest="hwaccel", action="store_true", help=hwaccel_help)
 
