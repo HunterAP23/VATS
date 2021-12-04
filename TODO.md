@@ -18,6 +18,10 @@
         - On exception, the program will shutdown the ThreadPoolExecutor to prevent any more tasks from running.
         - Any tasks in "running" state are forcibly cancelled, and their respective FFMPEG subprocess.Popen is forcibly terminated.
         - The status of any incomplete calculations is set to "CANCELLED" and the state of the program is saved to the JSON file.
+- [ ] Migrate code from `argparse` to `gooey` (Priority: High)
+- [ ] Add checks for FFmpeg executable (Priority: Medium):
+    - [ ] If FFmpeg executable is not given, make check to see if it is in the environment path variable.
+    - [ ] Add check to see that VMAF version 2 is an available filter inside FFmpeg
 - [ ] Take any important old code from `vmaf_calculator_old.py` and put it in `vmaf_calculator.py` or related files. (Priority: Medium)
     - Includes:
         - Checking if FFMPEG is working through ffmpy module
@@ -54,6 +58,7 @@
         - 0.1st Quantile Absolute Deviation
         - 0.01st Quantile Absolute Deviation
 - [x] Move from using `numpy` to only `pandas` if possible. (Priority: Medium)
+- [ ] Migrate code from `argparse` to `gooey` (Priority: High)
 - [ ] Move from using `matplotlib` to `pandas` for images. (Priority: Medium)
 - [ ] Add functionality for graphing all the data points together on one
     graph using data normalization. (Priority: Medium)
@@ -71,7 +76,9 @@
 - [ ] Utilize `amped` module. (Priority: Medium)
 
 ## Encoder
-- [ ] Define if this is necessary - should the program take already encoded files, or should it encode AND calculate VMAF at the same time? (Priority: High)
+- [x] Define if this is necessary - should the program take already encoded files, or should it encode AND calculate VMAF at the same time? (Priority: High)
+    - The program will only encode files, not calculate VMAF for them. This is so we can measure the file size and encode times for comparison between all the files.
+- [ ] Migrate code from `argparse` to `gooey` (Priority: High)
 - [ ] Create an async encoder app for all combinations specified in a config (Priority: Low)
 - [ ] Only encode videos that have no finished encoding (would require some form of state saving to know if a calculation was actually completed and NOT cancelled) (Priority: Low)
 - [ ] Utilize logging. (Priority: Medium)

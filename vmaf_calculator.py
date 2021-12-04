@@ -1,5 +1,6 @@
 import argparse as argp
 import concurrent.futures as cf
+import multiprocessing as mp
 import subprocess as sp
 from datetime import timedelta
 from json import dump, load
@@ -8,102 +9,180 @@ from time import time
 from traceback import print_exc
 
 import ffmpy
+from gooey import Gooey, GooeyParser
 from tqdm import tqdm
 
 from vmaf_common import bytes2human, search_handler
 
 
+@Gooey(
+    program_name="VMAF Calculator",
+    default_size=(1280, 720),
+    advanced=True,
+    use_cmd_args=True,
+    navigation="SIDEBAR",
+    show_sidebar=True,
+)
 def parse_arguments() -> argp.Namespace:
     """Parse user given arguments for calculating VMAF."""
-    main_help = "Multithreaded VMAF log file generator through FFmpeg.\n\n"
-    parser = argp.ArgumentParser(
-        description=main_help, formatter_class=argp.RawTextHelpFormatter, add_help=False, prog="VMAF Calculator"
+    main_help = "Multithreaded VMAF log file generator through FFmpeg."
+    parser = GooeyParser(description=main_help, formatter_class=argp.RawTextHelpFormatter)
+    subparsers = parser.add_subparsers(help="commands", dest="command")
+
+    main_parser = subparsers.add_parser("Files", help="Reference and Distorted file selection")
+    main_args = main_parser.add_argument_group("Main Arguments")
+    file_args = main_parser.add_argument_group("Reference and Distorted file arguments")
+
+    ffmpeg_parser = subparsers.add_parser("FFmpeg", help="Options regarding to FFmpeg")
+    ffmpeg_args = ffmpeg_parser.add_argument_group("FFmpeg arguments")
+    threading_args = ffmpeg_parser.add_argument_group("Multithreading arguments")
+
+    vmaf_parser = subparsers.add_parser("VMAF", help="Options regarding to VMAF")
+    vmaf_args = vmaf_parser.add_argument_group("VMAF arguments")
+
+    misc_parser = subparsers.add_parser("Miscellaneous", help="Miscellaneous Options")
+    misc_args = misc_parser.add_argument_group("Miscellaneous arguments")
+
+    continue_help = "Whether or not to look for a save state file for the given reference video file."
+    main_args.add_argument(
+        "-c", "--continue", dest="should_continue", action="store_false", help=continue_help, widget="CheckBox"
     )
 
-    reference_help = "Reference video file().\n"
-    reference_help += 'The program expects a single "reference" file.\n\n'
-    parser.add_argument("-r", "--reference", dest="reference", type=str, required=True, help=reference_help)
+    reference_help = "Reference video file(s).\n"
+    reference_help += 'The program expects a single "reference" file.'
+    file_args.add_argument(
+        "-r",
+        "--reference",
+        dest="reference",
+        type=str,
+        required=True,
+        help=reference_help,
+        widget="FileChooser",
+        gooey_options={
+            "wildcard": "MP4 files (*.mp4)|*.mp4|"
+            "MKV files (*.mkv)|*.mkv|"
+            "WEBM files (*.webm)|*.webm|"
+            "AVI files (*.avi)|*.avi|"
+            "All files (*.*)|*.*",
+            "default_dir": str(Path(__file__).parent),
+        },
+    )
 
-    distorted_help = "Distorted video file().\n"
-    distorted_help += 'Specifying a single "distorted" file will only run a single VMAF calculation instance between it and the "reference" file.\n'
+    distorted_help = "Distorted video file(s).\n"
     distorted_help += (
-        'Specifying multiple "distorted" files will compare the "reference" file against all the "distorted" files.\n'
+        'This should be a directory, which will be scanned for any video files to compare against the "reference" file.'
     )
-    distorted_help += 'Specifying a directory for the "distorted" argument will scan the diretory for any MP4 and MKV files to compare against the "reference" file.\n'
-    distorted_help += "You can provide any combination of files and directories.\n\n"
-    parser.add_argument("-d", "--distorted", dest="distorted", nargs="*", type=str, help=distorted_help)
+    file_args.add_argument(
+        "-d",
+        "--distorted",
+        dest="distorted",
+        type=str,
+        help=distorted_help,
+        widget="DirChooser",
+        gooey_options={"default_dir": str(Path(__file__).parent)},
+    )
 
-    optional_args = parser.add_argument_group("Optional arguments")
-    ffmpeg_help = 'Specify the path to the FFmpeg executable (Default is "ffmpeg" which assumes that FFmpeg is part of your "Path" environment variable).\n'
-    ffmpeg_help += 'The path must either point to the executable itself, or to the directory that contains the executable named "ffmpeg".\n\n'
-    optional_args.add_argument("-f", "--ffmpeg", dest="ffmpeg", default="ffmpeg", help=ffmpeg_help)
+    ffmpeg_help = "Specify the path to the FFmpeg executable.\n"
+    ffmpeg_help = 'Default is "ffmpeg" which assumes that FFmpeg is part of your "Path" environment variable.\n'
+    ffmpeg_help += 'The path must either point to the executable itself, or to the directory that contains the executable named "ffmpeg".'
+    ffmpeg_args.add_argument(
+        "-f",
+        "--ffmpeg",
+        dest="ffmpeg",
+        type=str,
+        default="ffmpeg",
+        help=ffmpeg_help,
+        widget="FileChooser",
+        gooey_options={
+            "default_dir": str(Path(__file__).parent),
+            "wildcard": "EXE files (*.exe)|*.exe|" "All files (*.*)|*.*",
+        },
+    )
+
+    hwaccel_help = "Enable FFmpeg to automatically attempt to use hardware acceleration for video decoding.\n"
+    hwaccel_help += "Not specifying this option means FFmpeg will use only the CPU for video decoding.\n"
+    hwaccel_help += (
+        "Enabling this option means FFmpeg will use attempt to use the GPU for video decoding instead of the CPU.\n"
+    )
+    hwaccel_help += "This could improve calculation speed, but your mileage may vary."
+    ffmpeg_args.add_argument("--hwaccel", dest="hwaccel", action="store_true", help=hwaccel_help)
 
     threads_help = 'Specify number of threads to be used for each process (Default is 0 for "autodetect").\n'
-    threads_help += (
-        "Specifying more threads than there are available will clamp the value down to 1 thread for safety purposes.\n"
-    )
     threads_help += "A single VMAF process will effectively max out at 12 threads - any more will provide little to no performance increase.\n"
-    threads_help += "The recommended value of threads to use per process is 4-6.\n\n"
-    optional_args.add_argument("-t", "--threads", dest="threads", type=int, default=0, help=threads_help)
-
-    proc_help = "Specify number of simultaneous VMAF calculation processes to run (Default is 1).\n"
-    proc_help += "Specifying more processes than there are available CPU threads will clamp the value down to the maximum number of threads on the system for a total of 1 thread per process.\n\n"
-    optional_args.add_argument("-p", "--processes", dest="processes", type=int, default=1, help=proc_help)
-
-    continue_help = (
-        "Specify whether or not to look for a save state file for the given reference video file (Default is True).\n\n"
+    threads_help += "The recommended value of threads to use per process is 4-6."
+    threading_args.add_argument(
+        "-t",
+        "--threads",
+        dest="threads",
+        type=int,
+        default=0,
+        help=threads_help,
+        widget="Slider",
+        gooey_options={"min": 0, "max": mp.cpu_count()},
     )
-    optional_args.add_argument("-c", "--continue", dest="should_continue", action="store_false", help=continue_help)
 
-    # rem_threads_help = "Specify whether or not to use remaining threads that don't make a complete process to use for an process (Default is off).\n"
+    proc_help = "Specify number of simultaneous VMAF calculation processes to run.\n"
+    proc_help += "Specifying more processes than there are available CPU threads will clamp the value down to the maximum number of threads on the system for a total of 1 thread per process."
+    threading_args.add_argument(
+        "-p",
+        "--processes",
+        dest="processes",
+        type=int,
+        default=1,
+        help=proc_help,
+        widget="Slider",
+        gooey_options={"min": 0, "max": mp.cpu_count()},
+    )
+
+    # rem_threads_help = "Specify whether or not to use remaining threads that don't make a complete process to use for an process.\n"
     # rem_threads_help += "For example, if your system has 16 threads, and you are running 5 processes with 3 threads each, then you will be using 4 * 3 threads, which is 12.\n"
     # rem_threads_help += "This means you will have 1 thread that will remain unused.\n"
     # rem_threads_help += "Using this option would run one more VMAF calculation process with only the single remaining thread.\n"
-    # rem_threads_help += "This option is not recommended, as the unused threads will be used to keep the system responsive during the VMAF calculations.\n\n"
-    # optional_args.add_argument("-u", "--use-rem-threads", dest="use_remaining_threads", action="store_true", default=False, help=rem_threads_help)
+    # rem_threads_help += "This option is not recommended, as the unused threads will be used to keep the system responsive during the VMAF calculations."
+    # threading_args.add_argument("-u", "--use-rem-threads", dest="use_remaining_threads", action="store_true", default=False, help=rem_threads_help, widget="CheckBox")
 
-    psnr_help = "Enable calculating PSNR values (Default is off).\n\n"
-    optional_args.add_argument("--psnr", dest="psnr", action="store_true", help=psnr_help)
+    psnr_help = "Enable calculating PSNR values."
+    vmaf_args.add_argument("--psnr", dest="psnr", action="store_false", help=psnr_help, widget="CheckBox")
 
-    ssim_help = "Enable calculating SSIM values (Default is off).\n\n"
-    optional_args.add_argument("--ssim", dest="ssim", action="store_true", help=ssim_help)
+    ssim_help = "Enable calculating SSIM values."
+    vmaf_args.add_argument("--ssim", dest="ssim", action="store_false", help=ssim_help, widget="CheckBox")
 
-    ms_ssim_help = "Enable calculating MS-SSIM values (Default is off).\n\n"
-    optional_args.add_argument("--ms-ssim", "--ms_ssim", dest="ms_ssim", action="store_true", help=ms_ssim_help)
+    ms_ssim_help = "Enable calculating MS-SSIM values."
+    vmaf_args.add_argument(
+        "--ms-ssim", "--ms_ssim", dest="ms_ssim", action="store_false", help=ms_ssim_help, widget="CheckBox"
+    )
 
-    subsamples_help = "Specify the number of subsamples to use (default 1).\n"
+    subsamples_help = "Specify the number of subsamples to use.\n"
     subsamples_help += "This value only samples the VMAF and related metrics' values once every N frames.\n"
-    subsamples_help += "Higher values may improve calculation performance at the cost of less accurate results.\n\n"
-    subsamples_help += 'This variable corresponds to VMAF\'s "n_subsample" variable.\n\n'
-    optional_args.add_argument("--subsamples", dest="subsamples", help=subsamples_help)
+    subsamples_help += "Higher values may improve calculation performance at the cost of less accurate results.\n"
+    subsamples_help += 'This variable corresponds to VMAF\'s "n_subsample" variable.'
+    vmaf_args.add_argument(
+        "--subsamples",
+        dest="subsamples",
+        help=subsamples_help,
+        widget="IntegerField",
+        gooey_options={"min": 1, "max": 60},
+    )
 
     model_help = "Specify the VMAF model files to use. This argument expects a list of model files to use.\n"
     model_help += "The program will calculate the VMAF scores for every distorted file, for every model given.\n"
-    model_help += "Note that VMAF models come in JSON format, and the program will only accept those models.\n\n"
-    optional_args.add_argument("-m", "--model", dest="model", nargs="*", type=str, help=model_help)
-
-    log_format_help = 'Specify the VMAF log file format (Default is "xml").\n\n'
-    optional_args.add_argument(
-        "-l", "--log-format", dest="log_format", choices=["xml", "csv", "json"], default="xml", help=log_format_help
+    model_help += "Note that VMAF models come in JSON format, and the program will only accept those models."
+    vmaf_args.add_argument(
+        "-m", "--model", dest="model", nargs="*", type=str, help=model_help, widget="MultiFileChooser"
     )
 
-    hwaccel_help = (
-        "Enable FFmpeg to automatically attempt to use hardware acceleration for video decoding (default is off).\n"
+    log_format_help = "Specify the VMAF log file format."
+    vmaf_args.add_argument(
+        "-l",
+        "--log-format",
+        dest="log_format",
+        choices=["xml", "csv", "json"],
+        default="xml",
+        help=log_format_help,
     )
-    hwaccel_help += "Not specifying this option means FFmpeg will use only the CPU for video decoding.\n"
-    hwaccel_help += "Enabling this option means FFmpeg will use attempt to use the GPU for video decoding instead.\n"
-    hwaccel_help += "This could improve calculation speed, but your mileage may vary.\n\n"
-    optional_args.add_argument("--hwaccel", dest="hwaccel", action="store_true", help=hwaccel_help)
 
-    misc_args = parser.add_argument_group("Miscellaneous arguments")
-    misc_args.add_argument(
-        "-h",
-        "--help",
-        action="help",
-        default=argp.SUPPRESS,
-        help="Show this help message and exit.\n",
-    )
-    misc_args.add_argument("-v", "--version", action="version", version="2021-10-10")
+    misc_args = misc_parser.add_argument_group("Miscellaneous arguments")
+    misc_args.add_argument("-v", "--version", action="version", version="2021-12-03")
 
     args = parser.parse_args()
 

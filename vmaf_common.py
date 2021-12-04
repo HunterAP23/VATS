@@ -176,7 +176,7 @@ def bytes2human(n, format="%(value).1f%(symbol)s"):
 
 class VMAF_Timer:
     def __init__(self):
-        self._start = None
+        self._start = dt.datetime.now()
         self._end = None
         self._runtime = None
 
@@ -211,5 +211,5 @@ class VMAF_Timer:
             msg += "{} hours, ".format(int(hours))
         if minutes > 0:
             msg += "{} minutes, ".format(int(minutes))
-        msg += "{} seconds, ".format(seconds)
-        print(msg)
+        msg += "{} seconds".format(seconds)
+        return msg
