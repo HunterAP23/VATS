@@ -25,7 +25,14 @@ from vmaf_common import VMAF_Timer, search_handler
 from vmaf_report_handler import VMAF_Report_Handler
 
 
-@Gooey(program_name="VMAF Plotter", default_size=(1280, 720), use_cmd_args=True)
+@Gooey(
+    program_name="VMAF Plotter",
+    default_size=(1280, 720),
+    advanced=True,
+    use_cmd_args=True,
+    navigation="SIDEBAR",
+    show_sidebar=True,
+)
 def parse_arguments():
     main_help = "Plot VMAF to graph, save it as both a static image and as a transparent animated video file.\n"
     main_help += "All of the following arguments have default values within the config file.\n"
@@ -33,25 +40,22 @@ def parse_arguments():
     main_help += (
         "Settings that are not specified in the config file will use default values as deemed by the program.\n\n"
     )
-    # parser = argp.ArgumentParser(
-    #     description=main_help, formatter_class=argp.RawTextHelpFormatter, add_help=False, prog="VMAF Plotter"
-    # )
-    parser = GooeyParser(description=main_help)
+    parser = GooeyParser(prog="VMAF Plotter", description=main_help, formatter_class=argp.RawTextHelpFormatter)
+    subparsers = parser.add_subparsers(help="commands", dest="command")
 
-    vmaf_help = (
-        "Directories containing subdirectories, which should contain the VMAF report files and distorted video files.\n"
-    )
+    main_parser = subparsers.add_parser("Files", help="Reference and Distorted file selection")
+    optional_args = parser.add_argument_group("Optional arguments")
+    misc_args = parser.add_argument_group("Miscellaneous arguments")
+
+    vmaf_help = "This should be a directory that contains subdirectories, each of which should contain the VMAF report files and distorted video files.\n"
     vmaf_help += (
         'The program will scan for inside the provided directories for subdirectories ending with "_results".\n'
     )
     vmaf_help += 'The subdirectories are expected to contain reports in CSV, JSON, and XML format that end with "_statistics" and be alongside the distorted video files.\n\n'
-    # parser.add_argument("VMAF", type=str, nargs="*", help=vmaf_help)
-    parser.add_argument("VMAF report files directory", help=vmaf_help, widget="MultiFileChooser")
+    parser.add_argument("VMAF", type=str, help=vmaf_help, widget="DirChooser")
 
-    optional_args = parser.add_argument_group("Optional arguments")
     config_help = "Config file (default: config.ini).\n"
-    # optional_args.add_argument("-c", "--config", dest="config", type=str, help=config_help)
-    optional_args.add_argument("Config file", help=config_help)
+    optional_args.add_argument("-c", "--config", dest="config", help=config_help)
 
     output_help = "Output files location, also defines the name of the output graph.\n"
     output_help += "Not specifying an output directory will write the output data to the same directory as the inputs, for each input given.\n"
@@ -111,15 +115,7 @@ def parse_arguments():
     fps_help = "Specify the FPS for the video file (Default is 60).\n"
     optional_args.add_argument("-f", "--fps", dest="fps", default=60.0, type=float, help=fps_help)
 
-    misc_args = parser.add_argument_group("Miscellaneous arguments")
-    # misc_args.add_argument(
-    #     "-h",
-    #     "--help",
-    #     action="help",
-    #     default=argp.SUPPRESS,
-    #     help="Show this help message and exit.\n",
-    # )
-    misc_args.add_argument("-v", "--version", action="version", version="2021-10-10")
+    misc_args.add_argument("-v", "--version", action="version", version="2021-12-06")
 
     args = parser.parse_args()
     if args.VMAF is None or len(args.VMAF) == 0:

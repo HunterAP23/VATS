@@ -26,7 +26,7 @@ from vmaf_common import bytes2human, search_handler
 def parse_arguments() -> argp.Namespace:
     """Parse user given arguments for calculating VMAF."""
     main_help = "Multithreaded VMAF log file generator through FFmpeg."
-    parser = GooeyParser(description=main_help, formatter_class=argp.RawTextHelpFormatter)
+    parser = GooeyParser(prog="VMAF Calculator", description=main_help, formatter_class=argp.RawTextHelpFormatter)
     subparsers = parser.add_subparsers(help="commands", dest="command")
 
     main_parser = subparsers.add_parser("Files", help="Reference and Distorted file selection")
@@ -181,8 +181,7 @@ def parse_arguments() -> argp.Namespace:
         help=log_format_help,
     )
 
-    misc_args = misc_parser.add_argument_group("Miscellaneous arguments")
-    misc_args.add_argument("-v", "--version", action="version", version="2021-12-03")
+    misc_args.add_argument("-v", "--version", action="version", version="2021-12-06")
 
     args = parser.parse_args()
 
