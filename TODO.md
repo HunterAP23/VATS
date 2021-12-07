@@ -1,4 +1,9 @@
 # TODO
+## General
+- [ ] Convert config files to `toml` format. (Priority: High)
+    - [x] Convert config file to `toml`.
+    - [ ] Convert parsing to handle the new `toml` format.
+
 ## Calculator
 - [x] Handle only running calculations that have not already completed. (Priority: High)
     - Solved by doing the following:

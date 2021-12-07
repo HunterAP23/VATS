@@ -8,7 +8,11 @@ from string import digits
 from typing import Iterable, Literal, Optional, Union
 
 
-def print_dict(item, tablevel=1, show_hidden=False):
+def print_dict(
+    item,
+    tablevel=1,
+    show_hidden=False,
+):
     for key, val in item.items():
         # if type(key) is str and key.startswith("__"):
         #     continue
@@ -75,7 +79,10 @@ def build_glob_from_ext(ext: str) -> str:
 
 
 def find_by_exts(
-    loc: Union[str, Path], exts: Iterable[str], rec=False, should_print: Optional[bool] = True
+    loc: Union[str, Path],
+    exts: Iterable[str],
+    rec=False,
+    should_print: Optional[bool] = True,
 ) -> Iterable[Union[str, Path]]:
     globs = map(build_glob_from_ext, exts)
     if rec:
@@ -92,7 +99,12 @@ def find_by_exts(
 
 def search_handler(
     item,
-    search_for: Literal["reference", "distorted", "model", "report"] = "reference",
+    search_for: Literal[
+        "reference",
+        "distorted",
+        "model",
+        "report",
+    ] = "reference",
     recurse: Optional[bool] = False,
 ):
     item_path = Path(item)
@@ -155,7 +167,10 @@ def search_handler(
         raise OSError("ERROR: Could not find {} file {}".format(search_for, item))
 
 
-def bytes2human(n, format="%(value).1f%(symbol)s"):
+def bytes2human(
+    n,
+    format="%(value).1f%(symbol)s",
+):
     """Used by various scripts. See:
     http://goo.gl/zeJZl
     >>> bytes2human(10000)

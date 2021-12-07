@@ -26,11 +26,11 @@ from vmaf_common import bytes2human, search_handler
 def parse_arguments() -> argp.Namespace:
     """Parse user given arguments for calculating VMAF."""
     main_help = "Multithreaded VMAF log file generator through FFmpeg."
-    parser = GooeyParser(prog="VMAF Calculator", description=main_help, formatter_class=argp.RawTextHelpFormatter)
+    parser = GooeyParser(description=main_help, formatter_class=argp.RawTextHelpFormatter)
     subparsers = parser.add_subparsers(help="commands", dest="command")
 
     main_parser = subparsers.add_parser("Files", help="Reference and Distorted file selection")
-    main_args = main_parser.add_argument_group("Main Arguments")
+    main_args = main_parser.add_argument_group("Main arguments")
     file_args = main_parser.add_argument_group("Reference and Distorted file arguments")
 
     ffmpeg_parser = subparsers.add_parser("FFmpeg", help="Options regarding to FFmpeg")
@@ -45,7 +45,12 @@ def parse_arguments() -> argp.Namespace:
 
     continue_help = "Whether or not to look for a save state file for the given reference video file."
     main_args.add_argument(
-        "-c", "--continue", dest="should_continue", action="store_false", help=continue_help, widget="CheckBox"
+        "-c",
+        "--continue",
+        dest="should_continue",
+        action="store_false",
+        help=continue_help,
+        widget="CheckBox",
     )
 
     reference_help = "Reference video file(s).\n"
@@ -59,12 +64,20 @@ def parse_arguments() -> argp.Namespace:
         help=reference_help,
         widget="FileChooser",
         gooey_options={
-            "wildcard": "MP4 files (*.mp4)|*.mp4|"
-            "MKV files (*.mkv)|*.mkv|"
-            "WEBM files (*.webm)|*.webm|"
-            "AVI files (*.avi)|*.avi|"
-            "All files (*.*)|*.*",
+            "wildcard": "".join(
+                [
+                    "MP4 files (*.mp4)|*.mp4|",
+                    "MKV files (*.mkv)|*.mkv|",
+                    "WEBM files (*.webm)|*.webm|",
+                    "AVI files (*.avi)|*.avi|",
+                    "All files (*.*)|*.*",
+                ]
+            ),
             "default_dir": str(Path(__file__).parent),
+            "validator": {
+                "test": "Path(r).exists() and Path(r).is_file() for r in user_input",
+                "message": "Must include at least one existing file.",
+            },
         },
     )
 
@@ -79,7 +92,13 @@ def parse_arguments() -> argp.Namespace:
         type=str,
         help=distorted_help,
         widget="DirChooser",
-        gooey_options={"default_dir": str(Path(__file__).parent)},
+        gooey_options={
+            "default_dir": str(Path(__file__).parent),
+            "validator": {
+                "test": "Path(d).exists() and Path(d).is_file() for r in user_input",
+                "message": "Must include at least one existing directory.",
+            },
+        },
     )
 
     ffmpeg_help = "Specify the path to the FFmpeg executable.\n"
@@ -105,7 +124,12 @@ def parse_arguments() -> argp.Namespace:
         "Enabling this option means FFmpeg will use attempt to use the GPU for video decoding instead of the CPU.\n"
     )
     hwaccel_help += "This could improve calculation speed, but your mileage may vary."
-    ffmpeg_args.add_argument("--hwaccel", dest="hwaccel", action="store_true", help=hwaccel_help)
+    ffmpeg_args.add_argument(
+        "--hwaccel",
+        dest="hwaccel",
+        action="store_true",
+        help=hwaccel_help,
+    )
 
     threads_help = 'Specify number of threads to be used for each process (Default is 0 for "autodetect").\n'
     threads_help += "A single VMAF process will effectively max out at 12 threads - any more will provide little to no performance increase.\n"
@@ -118,7 +142,10 @@ def parse_arguments() -> argp.Namespace:
         default=0,
         help=threads_help,
         widget="Slider",
-        gooey_options={"min": 0, "max": mp.cpu_count()},
+        gooey_options={
+            "min": 0,
+            "max": mp.cpu_count(),
+        },
     )
 
     proc_help = "Specify number of simultaneous VMAF calculation processes to run.\n"
@@ -131,7 +158,10 @@ def parse_arguments() -> argp.Namespace:
         default=1,
         help=proc_help,
         widget="Slider",
-        gooey_options={"min": 0, "max": mp.cpu_count()},
+        gooey_options={
+            "min": 0,
+            "max": mp.cpu_count(),
+        },
     )
 
     # rem_threads_help = "Specify whether or not to use remaining threads that don't make a complete process to use for an process.\n"
@@ -139,17 +169,34 @@ def parse_arguments() -> argp.Namespace:
     # rem_threads_help += "This means you will have 1 thread that will remain unused.\n"
     # rem_threads_help += "Using this option would run one more VMAF calculation process with only the single remaining thread.\n"
     # rem_threads_help += "This option is not recommended, as the unused threads will be used to keep the system responsive during the VMAF calculations."
-    # threading_args.add_argument("-u", "--use-rem-threads", dest="use_remaining_threads", action="store_true", default=False, help=rem_threads_help, widget="CheckBox")
+    # threading_args.add_argument("-u", "--use-rem-threads", dest="use_remaining_threads", action="store_true", default=False, help=rem_threads_help, widget="CheckBox",)
 
     psnr_help = "Enable calculating PSNR values."
-    vmaf_args.add_argument("--psnr", dest="psnr", action="store_false", help=psnr_help, widget="CheckBox")
+    vmaf_args.add_argument(
+        "--psnr",
+        dest="psnr",
+        action="store_false",
+        help=psnr_help,
+        widget="CheckBox",
+    )
 
     ssim_help = "Enable calculating SSIM values."
-    vmaf_args.add_argument("--ssim", dest="ssim", action="store_false", help=ssim_help, widget="CheckBox")
+    vmaf_args.add_argument(
+        "--ssim",
+        dest="ssim",
+        action="store_false",
+        help=ssim_help,
+        widget="CheckBox",
+    )
 
     ms_ssim_help = "Enable calculating MS-SSIM values."
     vmaf_args.add_argument(
-        "--ms-ssim", "--ms_ssim", dest="ms_ssim", action="store_false", help=ms_ssim_help, widget="CheckBox"
+        "--ms-ssim",
+        "--ms_ssim",
+        dest="ms_ssim",
+        action="store_false",
+        help=ms_ssim_help,
+        widget="CheckBox",
     )
 
     subsamples_help = "Specify the number of subsamples to use.\n"
@@ -168,7 +215,13 @@ def parse_arguments() -> argp.Namespace:
     model_help += "The program will calculate the VMAF scores for every distorted file, for every model given.\n"
     model_help += "Note that VMAF models come in JSON format, and the program will only accept those models."
     vmaf_args.add_argument(
-        "-m", "--model", dest="model", nargs="*", type=str, help=model_help, widget="MultiFileChooser"
+        "-m",
+        "--model",
+        dest="model",
+        nargs="*",
+        type=str,
+        help=model_help,
+        widget="MultiFileChooser",
     )
 
     log_format_help = "Specify the VMAF log file format."
@@ -181,7 +234,12 @@ def parse_arguments() -> argp.Namespace:
         help=log_format_help,
     )
 
-    misc_args.add_argument("-v", "--version", action="version", version="2021-12-06")
+    misc_args.add_argument(
+        "-v",
+        "--version",
+        action="version",
+        version="2021-12-06",
+    )
 
     args = parser.parse_args()
 
@@ -203,11 +261,19 @@ def read_completions(ref):
         return {}
 
 
-def write_state(ref, completions):
+def write_state(
+    ref,
+    completions,
+):
     ref_path = Path(args.reference)
     completions_file = Path(ref_path.parent.joinpath("{}_completions.json".format(ref_path.stem)))
     with open(str(completions_file), "w") as reader:
-        dump(completions, reader, indent=4, sort_keys=True)
+        dump(
+            completions,
+            reader,
+            indent=4,
+            sort_keys=True,
+        )
 
 
 if __name__ == "__main__":
@@ -288,7 +354,7 @@ if __name__ == "__main__":
                 if all(check):
                     # Move the distorted video file and change its' status to MOVED
                     Path(dist).replace(
-                        Path(dist).parent.joinpath("{}_results".format(Path(dist).stem), Path(dist).name)
+                        Path(dist).parent.joinpath("{}_results".format(Path(dist).stem), Path(dist).name),
                     )
                     for model in completions[dist].keys():
                         completions[dist][model]["status"] = "MOVED"
@@ -334,7 +400,11 @@ if __name__ == "__main__":
             try:
                 log_dir = dist_parent.joinpath("{}_results".format(dist_path.stem))
                 log_dir.mkdir(exist_ok=True)
-                log_loc = "{}_{}.{}".format(dist_path.stem, Path(model).stem, args.log_format)
+                log_loc = "{}_{}.{}".format(
+                    dist_path.stem,
+                    Path(model).stem,
+                    args.log_format,
+                )
                 log_loc = log_dir.joinpath(log_loc)
 
                 if dist not in aggregate.keys():
@@ -413,7 +483,14 @@ if __name__ == "__main__":
                     continue
                 # Submit an ffmpy task to the pool
                 msg = "Submitting VMAF calculation:\n\tReference: {}\n\tDistorted: {}\n\tModel: {}\n\tLog File: {}\n"
-                print(msg.format(args.reference, dist, model, io[dist][model]["log_path"]))
+                print(
+                    msg.format(
+                        args.reference,
+                        dist,
+                        model,
+                        io[dist][model]["log_path"],
+                    )
+                )
 
                 # Create the ffmpy.FFmpeg class containing the inputs and output
                 # commands
@@ -427,7 +504,7 @@ if __name__ == "__main__":
                 )
 
                 # Submit the actual run Future as a key
-                my_ffs[cf_handler.submit(ff_tmp.run, stdout=sp.PIPE, stderr=sp.PIPE)] = {
+                my_ffs[cf_handler.submit(ff_tmp.run, stdout=sp.PIPE, stderr=sp.PIPE,)] = {
                     "ff": ff_tmp,
                     "dist": dist,
                     "model": model,

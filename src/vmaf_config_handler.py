@@ -99,7 +99,10 @@ class VMAF_Config_Handler(VMAF_File_Handler):
 
         return default_config_dict
 
-    def _read_config(self, filename: str) -> dict:
+    def _read_config(
+        self,
+        filename: str,
+    ) -> dict:
         config = confp.ConfigParser()
         config.read(filename)
 
@@ -130,7 +133,10 @@ class VMAF_Config_Handler(VMAF_File_Handler):
 
         return self._config_data
 
-    def _validate_options(self, filename: str) -> Union[bool, str]:
+    def _validate_options(
+        self,
+        filename: str,
+    ) -> Union[bool, str]:
         """Validate all user specified, config-specified, and remaining default options."""
 
         def _validate_config_file(filename):
@@ -169,7 +175,11 @@ class VMAF_Config_Handler(VMAF_File_Handler):
             else:
                 return config
 
-        def _print_mp_err(self, var_type: str = "processes", cause: str = "User") -> None:
+        def _print_mp_err(
+            self,
+            var_type: str = "processes",
+            cause: str = "User",
+        ) -> None:
             msg = "{} specified {} {} which is more than the number of threads the system supports ({})."
             which_dict = None
             if cause == "User":
@@ -186,7 +196,10 @@ class VMAF_Config_Handler(VMAF_File_Handler):
                 )
             )
 
-        def _validate_mp(self, var_type: str = "thread"):
+        def _validate_mp(
+            self,
+            var_type: str = "thread",
+        ):
             self._log.info("Validating {} count...".format(var_type))
             type_plural = None
             func = None

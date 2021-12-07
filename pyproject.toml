@@ -4,3 +4,38 @@ line-length = 120
 [tool.isort]
 profile = "black"
 multi_line_output = 3
+
+[vmaf.general]
+ffmpeg = 'ffmpeg'
+
+[vmaf.calculator]
+psnr = true
+ssim = true
+ms_ssim = true
+subsamples = 1
+models = [ 'vmaf_v0.6.1' ]
+log_path = 'vmaf'
+log_format = 'xml'
+hwaccel = false
+threads = 0
+processes = 1
+use_remaining_threads = false
+
+[vmaf.plotter.graphing]
+output = 'vmaf'
+custom = 0
+threads = 0
+processes = 1
+use_remaining_threads = false
+
+[vmaf.plotter.image]
+x = 1920.0
+y = 1080.0
+format = 'svg'
+transparent = true
+
+[vmaf.plotter.video]
+x = 1920.0
+y = 1080.0
+framerate = 60.0
+transparent = true

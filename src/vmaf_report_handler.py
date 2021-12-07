@@ -11,7 +11,17 @@ from vmaf_file_handler import VMAF_File_Handler
 
 
 class VMAF_Report_Handler(VMAF_File_Handler):
-    def __init__(self, file=None, config=False, datapoints=["VMAF", "PSNR", "SSIM", "MS-SSIM"]):
+    def __init__(
+        self,
+        file=None,
+        config=False,
+        datapoints=[
+            "VMAF",
+            "PSNR",
+            "SSIM",
+            "MS-SSIM",
+        ],
+    ):
         try:
             filename = ""
             if file:

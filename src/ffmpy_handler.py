@@ -14,7 +14,11 @@ class FFmpy_Handler_Exception(ffmpy.FFExecutableNotFoundError):
 
 
 class FFmpy_Handler:
-    def __init__(self, executable_ffmpeg: str, log: Optional[lg.RootLogger]):
+    def __init__(
+        self,
+        executable_ffmpeg: str,
+        log: Optional[lg.RootLogger],
+    ):
         self._executable_ffmpeg = None
         self._libraries = []
         self._log = log
@@ -29,7 +33,13 @@ class FFmpy_Handler:
         self._get_libs()
 
     def _validate_ffmpeg(self, executable: str) -> bool:
-        self.run_command(executable, ff_globals="-h -hide_banner", ff_outputs={"-": "-f null"})
+        self.run_command(
+            executable,
+            ff_globals="-h -hide_banner",
+            ff_outputs={
+                "-": "-f null",
+            },
+        )
         self._executable_ffmpeg = executable
 
     def _get_libs(self):
@@ -78,7 +88,10 @@ class FFmpy_Handler:
             self._log.critical(ffenfe)
             exit(1)
 
-    def search_lib(self, lib: str) -> bool:
+    def search_lib(
+        self,
+        lib: str,
+    ) -> bool:
         if "--enable-" in lib:
             check = lib
         else:

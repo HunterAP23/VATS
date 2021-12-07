@@ -125,7 +125,11 @@ class VMAF_File_Handler:
                     self._log.critical("The program will now exit.")
                     exit(1)
 
-    def _validate_file(self, file: str, should_exit: bool) -> None:
+    def _validate_file(
+        self,
+        file: str,
+        should_exit: bool,
+    ) -> None:
         exec_check = None
         if self._file_type == "executable":
             # if self._os_name == "Windows" and file.suffix == ".exe":

@@ -13,7 +13,11 @@ from typing import Optional
 # 3 -> ERROR
 # 4 -> CRITICAL
 class HunterAP_Logger:
-    def __init__(self, name: Optional[str] = "log", debug: Optional[bool] = False):
+    def __init__(
+        self,
+        name: Optional[str] = "log",
+        debug: Optional[bool] = False,
+    ):
         self._debug = debug
         self._name = name
 
