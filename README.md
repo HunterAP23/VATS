@@ -14,11 +14,6 @@ metrics include PSNR, SSIM, SSIM, and others that VMAF normally generates. The
 video file is a live playback of the values to be used in situations like
 benchmark videos.
 
-
-## TODO
-Please look at the [TODO.md](TODO.md) file for the current status of the
-project and what tasks are left to be done.
-
 ## CONTRIBUTING
 Please read the [CONTRIBUTING.md](CONTRIBUTING.md) file to see how to set up
 your development environment.

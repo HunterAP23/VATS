@@ -1,5 +1,5 @@
 ### CONTRIBUTING
-### Normal Setup
+## Normal Setup
 Install them with either of the following commands:
 ```
 pip install -r requirements.txt
@@ -32,3 +32,7 @@ Now your
 4. Run commands through `pipenv` or enter into the `pipenv` virtual environment:
 `pipenv run` / `python -m pipenv run` OR `pipenv shell` /
 `python -m pipenv shell`
+
+## TODO
+Please look at the [TODO.md](TODO.md) file for the current status of the
+project and what tasks are left to be done.
