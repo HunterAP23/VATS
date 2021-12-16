@@ -38,6 +38,9 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v2
 
+    - name: Install GTK3 dependency for Gooey library
+      run: sudo apt install libgtk-3-dev
+
     - name: Install dependencies
       run: pip install -r requirements-dev.txt
 
