@@ -41,6 +41,9 @@ jobs:
     - name: Install GTK3 dependency for Gooey library
       run: sudo apt install libgtk-3-dev
 
+    - name: Install wxPython 4.10
+      run: pip install -U -f https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-20.04 wxPython
+
     - name: Install dependencies
       run: pip install -r requirements-dev.txt
 
