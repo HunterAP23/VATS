@@ -1,3 +1,4 @@
+defusedxml>=0.7.1
 ffmpy>=0.3.0
 gooey>=1.0.8.1
 matplotlib>=3.4.1

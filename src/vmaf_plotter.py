@@ -234,7 +234,12 @@ def quantile_abs_dev(
     return round(float(x.mean()), 3)
 
 
-def create_datapoint(data):
+def max_abs_dev2(array, max_val):
+    x = pd.DataFrame(array - max_val).abs()
+    return round(float(x.mean()), 3)
+
+
+def create_datapoint(dp, data):
     point = {}
     point["list"] = data
     point["dataset"] = pd.Series(data)
@@ -253,14 +258,20 @@ def create_datapoint(data):
     point["0.1st Percentile"] = point["dataset"].quantile(0.001)
     point["0.01st Percentile"] = point["dataset"].quantile(0.0001)
     # point["Minimum"] = min(data)
-    point["99th Percentile Absolute Deviation"] = point["dataset"].agg(quantile_abs_dev, quantile=0.99)
-    point["95th Percentile Absolute Deviation"] = point["dataset"].agg(quantile_abs_dev, quantile=0.95)
-    point["90th Percentile Absolute Deviation"] = point["dataset"].agg(quantile_abs_dev, quantile=0.9)
-    point["75th Percentile Absolute Deviation"] = point["dataset"].agg(quantile_abs_dev, quantile=0.75)
-    point["25th Percentile Absolute Deviation"] = point["dataset"].agg(quantile_abs_dev, quantile=0.25)
-    point["1st Percentile Absolute Deviation"] = point["dataset"].agg(quantile_abs_dev, quantile=0.01)
-    point["0.1st Percentile Absolute Deviation"] = point["dataset"].agg(quantile_abs_dev, quantile=0.001)
-    point["0.01st Percentile Absolute Deviation"] = point["dataset"].agg(quantile_abs_dev, quantile=0.0001)
+    point["Max Absolute Deviation1"] = point["dataset"].agg(quantile_abs_dev, quantile=1)
+    if dp in ["SSIM", "MS-SSIM"]:
+        point["Max Absolute Deviation2"] = point["dataset"].agg(max_abs_dev2, max_val=1)
+    else:
+        point["Max Absolute Deviation2"] = point["dataset"].agg(max_abs_dev2, max_val=100)
+
+    # point["99th Percentile Absolute Deviation"] = point["dataset"].agg(quantile_abs_dev, quantile=0.99)
+    # point["95th Percentile Absolute Deviation"] = point["dataset"].agg(quantile_abs_dev, quantile=0.95)
+    # point["90th Percentile Absolute Deviation"] = point["dataset"].agg(quantile_abs_dev, quantile=0.9)
+    # point["75th Percentile Absolute Deviation"] = point["dataset"].agg(quantile_abs_dev, quantile=0.75)
+    # point["25th Percentile Absolute Deviation"] = point["dataset"].agg(quantile_abs_dev, quantile=0.25)
+    # point["1st Percentile Absolute Deviation"] = point["dataset"].agg(quantile_abs_dev, quantile=0.01)
+    # point["0.1st Percentile Absolute Deviation"] = point["dataset"].agg(quantile_abs_dev, quantile=0.001)
+    # point["0.01st Percentile Absolute Deviation"] = point["dataset"].agg(quantile_abs_dev, quantile=0.0001)
 
     # ewm = point["dataset"].ewm(com=0.5)
 
@@ -324,7 +335,7 @@ def get_stats(
     main = {}
 
     for point in datapoints:
-        main[point] = create_datapoint(data[point])
+        main[point] = create_datapoint(point, data[point])
         if point in ["SSIM", "MS-SSIM"]:
             main[point]["Maximum"] = 1
         else:
@@ -790,8 +801,6 @@ def main(args, original_location):
     ret_get_stats = {}
     ret_write_stats = {}
     ret_plots = {}
-    ret_images = []
-    ret_videos = []
     main = {}
     figs = {}
     for key in data.keys():
@@ -860,7 +869,6 @@ def main(args, original_location):
             pool_main.shutdown(cancel_futures=True)
         finally:
             pool_main.shutdown()
-            pool_video.shutdown()
 
         if mbar is not None:
             mbar.close()

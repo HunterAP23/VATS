@@ -34,7 +34,7 @@
 - [ ] Create priority queue for calculations, prioritizing finishing all models for a single distorted file first before moving on to another distorted file. (Priority: Low)
     - Might not be necessary
 - [ ] Utilize logging. (Priority: Medium)
-- [ ] Utilize `amped` module. (Priority: Medium)
+- [ ] Utilize `amped` module. (Priority: Lowest)
 
 ## Plotter
 - [x] Grab all reports from folders ending in "_results" and use that as the
@@ -78,7 +78,7 @@
         - There can be ties in the VMAF metric scores, and using the file can
         help determine a more clear winner
 - [ ] Utilize logging. (Priority: Medium)
-- [ ] Utilize `amped` module. (Priority: Medium)
+- [ ] Utilize `amped` module. (Priority: Lowest)
 
 ## Encoder
 - [x] Define if this is necessary - should the program take already encoded files, or should it encode AND calculate VMAF at the same time? (Priority: High)
@@ -87,4 +87,4 @@
 - [ ] Create an async encoder app for all combinations specified in a config (Priority: Low)
 - [ ] Only encode videos that have no finished encoding (would require some form of state saving to know if a calculation was actually completed and NOT cancelled) (Priority: Low)
 - [ ] Utilize logging. (Priority: Medium)
-- [ ] Utilize `amped` module. (Priority: Medium)
+- [ ] Utilize `amped` module. (Priority: Lowest)

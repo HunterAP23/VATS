@@ -1,13 +1,13 @@
 import csv
 import json
-import os
-import xml.etree.ElementTree as xml
 from pathlib import Path
+
+import defusedxml.ElementTree as xml
 
 from vmaf_common import print_err
 
 # from vmaf_config_handler import VMAF_Config_Handler
-from vmaf_file_handler import VMAF_File_Handler
+from vmaf_file_handler2 import VMAF_File_Handler
 
 
 class VMAF_Report_Handler(VMAF_File_Handler):
@@ -29,19 +29,7 @@ class VMAF_Report_Handler(VMAF_File_Handler):
 
                 if Path(filename).exists() and Path(filename).is_file():
                     # Get file extension to determine report file type.
-                    ext = filename.split(".")[-1]
-                    if ext.lower() == "json":
-                        self.type = "json"
-                    elif ext.lower() == "xml":
-                        self.type = "xml"
-                    elif ext.lower() == "csv":
-                        self.type = "csv"
-                    elif ext.lower() == "ini":
-                        self.type = "ini"
-                    else:
-                        self.type = "unspecified"
-
-                    self.file = filename
+                    self.check_type(filename)
                 else:
                     raise OSError("File {} does not exist.".format(filename))
             else:
@@ -52,51 +40,58 @@ class VMAF_Report_Handler(VMAF_File_Handler):
 
         self.datapoints = datapoints
 
-        # try:
-        #     if config:
-        #         if Path(filename).exists() and Path(filename).is_file():
-        #             self._config = VMAF_Config_Handler(config)
-        #         else:
-        #             raise OSError("File {} does not exist.".format(filename))
-        #     else:
-        #         config = Path(__file__).parent.joinpath("config.ini")
-        #         if Path(filename).exists() and Path(filename).is_file():
-        #             self._config = VMAF_Config_Handler(config)
-        #         else:
-        #             raise OSError("File {} does not exist.".format(filename))
-        # except OSError as ose:
-        #     print_err(ose)
-        #     exit(1)
-
-    def validate_file(self, filename):
-        """Validate the file."""
-
-        try:
-            # Check if path given actually exists
-            if filename is None:
-                return False
-            elif Path(filename).exists():
-                # Check if path is a file or a directory
-                if Path(filename).is_file():
-                    return filename
-                else:
-                    raise OSError("The specified report file {0} does not exist.".format(filename))
+    def check_type(self, filename):
+        ext = Path(filename).suffix.replace(".", "")
+        if ext.lower() == "json":
+            self.type = "json"
+        elif ext.lower() == "xml":
+            self.type = "xml"
+        elif ext.lower() == "csv":
+            self.type = "csv"
+        else:
+            tests = [self.check_csv, self.check_json, self.check_xml]
+            filetype = list([func(filename) for func in tests])
+            if any(filetype):
+                tests[next((x for x in range(len(filetype)) if x))]
             else:
-                raise OSError("The specified report file {0} does not exist.".format(filename))
-        except OSError as ose:
-            print_err(ose)
-            exit(1)
+                msg = "File '{}' is not in any acceptable format."
+                raise OSError(msg.format(self.file))
+
+    def check_csv(self, filename):
+        try:
+            with open(filename, "r") as csv_file:
+                csv.reader(csv_file)
+            self.type = "csv"
+            return True
+        except csv.Error:
+            return False
+
+    def check_json(self, filename):
+        try:
+            json.load(filename)
+            self.type = "json"
+            return True
+        except json.JSONDecodeError:
+            return False
+
+    def check_xml(self, filename):
+        try:
+            xml.parse(filename)
+            self.type = "xml"
+            return True
+        except xml.ParseError:
+            return False
 
     def read_file(self):
-        if self.type == "unspecified":
-            with open(self.file, "r") as f:
-                check = f.read(1)
-                if check == "{":
-                    self.type = "json"
-                elif check == "<":
-                    self.type = "xml"
-                else:
-                    self.type = "csv"
+        # if self.type == "unspecified":
+        # with open(self.file, "r") as f:
+        #     check = f.read(1)
+        #     if check == "{":
+        #         self.type = "json"
+        #     elif check == "<":
+        #         self.type = "xml"
+        #     else:
+        #         self.type = "csv"
 
         if self.type == "json":
             return self.read_json()

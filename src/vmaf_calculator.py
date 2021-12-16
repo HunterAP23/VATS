@@ -1,7 +1,7 @@
-import argparse as argp
 import concurrent.futures as cf
 import multiprocessing as mp
 import subprocess as sp
+from argparse import RawTextHelpFormatter
 from datetime import timedelta
 from json import dump, load
 from pathlib import Path
@@ -23,10 +23,10 @@ from vmaf_common import bytes2human, search_handler
     navigation="SIDEBAR",
     show_sidebar=True,
 )
-def parse_arguments() -> argp.Namespace:
+def parse_arguments():
     """Parse user given arguments for calculating VMAF."""
     main_help = "Multithreaded VMAF log file generator through FFmpeg."
-    parser = GooeyParser(description=main_help, formatter_class=argp.RawTextHelpFormatter)
+    parser = GooeyParser(description=main_help, formatter_class=RawTextHelpFormatter)
     subparsers = parser.add_subparsers(help="commands", dest="command")
 
     main_parser = subparsers.add_parser("Files", help="Reference and Distorted file selection")
@@ -244,7 +244,8 @@ def parse_arguments() -> argp.Namespace:
     args = parser.parse_args()
 
     if (not args.model or not args.distorted) and not args.should_continue:
-        raise argp.ArgumentParser.error(
+        # raise argp.ArgumentParser.error(
+        raise ValueError(
             "User specified not to use an existing completions file and did not provide distorted video files and/or VMAF models."
         )
 
