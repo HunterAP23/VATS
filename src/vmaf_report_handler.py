@@ -7,7 +7,7 @@ import defusedxml.ElementTree as xml
 from vmaf_common import print_err
 
 # from vmaf_config_handler import VMAF_Config_Handler
-from vmaf_file_handler2 import VMAF_File_Handler
+from vmaf_file_handler import VMAF_File_Handler
 
 
 class VMAF_Report_Handler(VMAF_File_Handler):
@@ -38,66 +38,71 @@ class VMAF_Report_Handler(VMAF_File_Handler):
             print_err(ose)
             exit(1)
 
-        self.datapoints = datapoints
+        self._datapoints = datapoints
 
     def check_type(self, filename):
         ext = Path(filename).suffix.replace(".", "")
         if ext.lower() == "json":
-            self.type = "json"
+            self._type = "json"
         elif ext.lower() == "xml":
-            self.type = "xml"
+            self._type = "xml"
         elif ext.lower() == "csv":
-            self.type = "csv"
+            self._type = "csv"
+
+        tests = {
+            "csv": self.check_csv,
+            "json": self.check_json,
+            "xml": self.check_xml,
+        }
+        filetype = {ftype: func(filename) for ftype, func in tests.items()}
+        if any(filetype.values()):
+            self._type = list(filter(lambda x: x[1], filetype.items()))[0][0]
         else:
-            tests = [self.check_csv, self.check_json, self.check_xml]
-            filetype = list([func(filename) for func in tests])
-            if any(filetype):
-                tests[next((x for x in range(len(filetype)) if x))]
-            else:
-                msg = "File '{}' is not in any acceptable format."
-                raise OSError(msg.format(self.file))
+            msg = "File '{}' is not in any acceptable format."
+            raise OSError(msg.format(self.file))
 
     def check_csv(self, filename):
         try:
             with open(filename, "r") as csv_file:
                 csv.reader(csv_file)
-            self.type = "csv"
+            self._type = "csv"
             return True
-        except csv.Error:
+        except Exception:
             return False
 
     def check_json(self, filename):
         try:
             json.load(filename)
-            self.type = "json"
+            self._type = "json"
             return True
-        except json.JSONDecodeError:
+        except Exception:
             return False
 
     def check_xml(self, filename):
         try:
-            xml.parse(filename)
-            self.type = "xml"
+            for item in xml.iterparse(filename, events="end"):
+                break
+            self._type = "xml"
             return True
-        except xml.ParseError:
+        except Exception:
             return False
 
     def read_file(self):
-        # if self.type == "unspecified":
+        # if self._type == "unspecified":
         # with open(self.file, "r") as f:
         #     check = f.read(1)
         #     if check == "{":
-        #         self.type = "json"
+        #         self._type = "json"
         #     elif check == "<":
-        #         self.type = "xml"
+        #         self._type = "xml"
         #     else:
-        #         self.type = "csv"
+        #         self._type = "csv"
 
-        if self.type == "json":
+        if self._type == "json":
             return self.read_json()
-        elif self.type == "xml":
+        elif self._type == "xml":
             return self.read_xml()
-        elif self.type == "csv":
+        elif self._type == "csv":
             return self.read_csv()
 
     def read_xml(self):
@@ -114,22 +119,22 @@ class VMAF_Report_Handler(VMAF_File_Handler):
         with open(self.file, "r") as f:
             lines = f.readlines()
 
-            for point in self.datapoints:
+            for point in self._datapoints:
                 data[point] = []
 
             for line in lines:
                 sep = line.split(" ")
                 for section in sep:
-                    if "VMAF" in self.datapoints and section.strip().startswith('vmaf="'):
+                    if "VMAF" in self._datapoints and section.strip().startswith('vmaf="'):
                         tmp = section.split('"')[1]
                         data["VMAF"].append(round(float(tmp), 3))
-                    elif "PSNR" in self.datapoints and section.strip().startswith('psnr="'):
+                    elif "PSNR" in self._datapoints and section.strip().startswith('psnr="'):
                         tmp = section.split('"')[1]
                         data["PSNR"].append(round(float(tmp), 3))
-                    elif "SSIM" in self.datapoints and section.strip().startswith('ssim="'):
+                    elif "SSIM" in self._datapoints and section.strip().startswith('ssim="'):
                         tmp = section.split('"')[1]
                         data["SSIM"].append(round(float(tmp), 3))
-                    elif "MS-SSIM" in self.datapoints and section.strip().startswith('ms_ssim="'):
+                    elif "MS-SSIM" in self._datapoints and section.strip().startswith('ms_ssim="'):
                         tmp = section.split('"')[1]
                         data["MS-SSIM"].append(round(float(tmp), 3))
 

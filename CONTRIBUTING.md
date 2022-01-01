@@ -104,6 +104,8 @@ restricting.
     * __Section 2__: Importing portions of built-in libraries.
     * __Section 3__: Importing entire 3rd-party libraries.
     * __Section 4__: Importing portions of 3rd-party libraries.
+    * __Section 5__: Importing entire libraries from this project.
+    * __Section 6__: Importing portions of libraries from this project.
     * Each section should be separated by a single blank line.
     * All imports for a section should be sorted alphabetically (this is
     normally handled by the `isort` library). For section 2 and 4, if mutiple

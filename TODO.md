@@ -62,7 +62,6 @@
         - 1st Quantile Absolute Deviation
         - 0.1st Quantile Absolute Deviation
         - 0.01st Quantile Absolute Deviation
-- [x] Move from using `numpy` to only `pandas` if possible. (Priority: Medium)
 - [ ] Migrate code from `argparse` to `gooey` (Priority: High)
 - [ ] Move from using `matplotlib` to `pandas` for images. (Priority: Medium)
 - [ ] Add functionality for graphing all the data points together on one

@@ -13,6 +13,7 @@ from traceback import print_exc
 import matplotlib as mpl
 
 mpl.use("agg", force=True)
+
 import numpy as np
 import pandas as pd
 from gooey import Gooey, GooeyParser
@@ -225,53 +226,70 @@ def get_name_model(name: str):
     return name_new, model
 
 
-def quantile_abs_dev(
+def percentile_abs_dev(
     array,
-    quantile,
+    percentile,
 ):
-    quantile = array.quantile(quantile)
-    x = pd.DataFrame(array - quantile).abs()
+    # quantile = array.percentile(percentile)
+    percentile = np.percentile(array, percentile)
+    # x = pd.DataFrame(array - percentile).abs()
+    x = np.abs(array - percentile)
     return round(float(x.mean()), 3)
 
 
-def max_abs_dev2(array, max_val):
-    x = pd.DataFrame(array - max_val).abs()
+def max_abs_dev(array, max_val):
+    # x = pd.DataFrame(array - max_val).abs()
+    x = np.abs(array - max_val)
     return round(float(x.mean()), 3)
 
 
 def create_datapoint(dp, data):
     point = {}
     point["list"] = data
-    point["dataset"] = pd.Series(data)
+    # point["dataset"] = pd.Series(data)
+    point["dataset"] = np.array(data)
 
     point["Mean"] = point["dataset"].mean()
     point["Median"] = point["dataset"].median()
     point["Standard Deviation"] = point["dataset"].std()
-    point["Mean Absolute Deviation"] = point["dataset"].mad()
-    point["Median Absolute Deviation"] = point["dataset"].agg(quantile_abs_dev, quantile=0.5)
-    point["99th Percentile"] = point["dataset"].quantile(0.99)
-    point["95th Percentile"] = point["dataset"].quantile(0.95)
-    point["90th Percentile"] = point["dataset"].quantile(0.90)
-    point["75th Percentile"] = point["dataset"].quantile(0.75)
-    point["25th Percentile"] = point["dataset"].quantile(0.25)
-    point["1st Percentile"] = point["dataset"].quantile(0.01)
-    point["0.1st Percentile"] = point["dataset"].quantile(0.001)
-    point["0.01st Percentile"] = point["dataset"].quantile(0.0001)
+    # point["Mean Absolute Deviation"] = point["dataset"].mad()
+    point["Mean Absolute Deviation"] = max_abs_dev(point["dataset"], point["Mean"])
+    # point["Median Absolute Deviation"] = point["dataset"].agg(percentile_abs_dev, percentile=0.5)
+    point["Median Absolute Deviation"] = percentile_abs_dev(point["dataset"], percentile=50)
+    # point["99th Percentile"] = point["dataset"].quantile(0.99)
+    point["99th Percentile"] = np.percentile(point["dataset"], 99)
+    # point["95th Percentile"] = point["dataset"].quantile(0.95)
+    point["95th Percentile"] = np.percentile(point["dataset"], 95)
+    # point["90th Percentile"] = point["dataset"].quantile(0.90)
+    point["90th Percentile"] = np.percentile(point["dataset"], 90)
+    # point["75th Percentile"] = point["dataset"].quantile(0.75)
+    point["75th Percentile"] = np.percentile(point["dataset"], 75)
+    # point["25th Percentile"] = point["dataset"].quantile(0.25)
+    point["25th Percentile"] = np.percentile(point["dataset"], 25)
+    # point["1st Percentile"] = point["dataset"].quantile(0.01)
+    point["1st Percentile"] = np.percentile(point["dataset"], 1)
+    # point["0.1st Percentile"] = point["dataset"].quantile(0.001)
+    point["0.1st Percentile"] = np.percentile(point["dataset"], 0.1)
+    # point["0.01st Percentile"] = point["dataset"].quantile(0.0001)
+    point["0.01st Percentile"] = np.percentile(point["dataset"], 0.01)
     # point["Minimum"] = min(data)
-    point["Max Absolute Deviation1"] = point["dataset"].agg(quantile_abs_dev, quantile=1)
+    # point["Max Absolute Deviation1"] = point["dataset"].agg(percentile_abs_dev, quantile=1)
+    point["Max Absolute Deviation1"] = percentile_abs_dev(point["dataset"], percentile=100)
     if dp in ["SSIM", "MS-SSIM"]:
-        point["Max Absolute Deviation2"] = point["dataset"].agg(max_abs_dev2, max_val=1)
+        # point["Max Absolute Deviation2"] = point["dataset"].agg(max_abs_dev, max_val=1)
+        point["Max Absolute Deviation2"] = max_abs_dev(point["dataset"], max_val=1)
     else:
-        point["Max Absolute Deviation2"] = point["dataset"].agg(max_abs_dev2, max_val=100)
+        # point["Max Absolute Deviation2"] = point["dataset"].agg(max_abs_dev, max_val=100)
+        point["Max Absolute Deviation2"] = max_abs_dev(point["dataset"], max_val=100)
 
-    # point["99th Percentile Absolute Deviation"] = point["dataset"].agg(quantile_abs_dev, quantile=0.99)
-    # point["95th Percentile Absolute Deviation"] = point["dataset"].agg(quantile_abs_dev, quantile=0.95)
-    # point["90th Percentile Absolute Deviation"] = point["dataset"].agg(quantile_abs_dev, quantile=0.9)
-    # point["75th Percentile Absolute Deviation"] = point["dataset"].agg(quantile_abs_dev, quantile=0.75)
-    # point["25th Percentile Absolute Deviation"] = point["dataset"].agg(quantile_abs_dev, quantile=0.25)
-    # point["1st Percentile Absolute Deviation"] = point["dataset"].agg(quantile_abs_dev, quantile=0.01)
-    # point["0.1st Percentile Absolute Deviation"] = point["dataset"].agg(quantile_abs_dev, quantile=0.001)
-    # point["0.01st Percentile Absolute Deviation"] = point["dataset"].agg(quantile_abs_dev, quantile=0.0001)
+    # point["99th Percentile Absolute Deviation"] = point["dataset"].agg(percentile_abs_dev, quantile=0.99)
+    # point["95th Percentile Absolute Deviation"] = point["dataset"].agg(percentile_abs_dev, quantile=0.95)
+    # point["90th Percentile Absolute Deviation"] = point["dataset"].agg(percentile_abs_dev, quantile=0.9)
+    # point["75th Percentile Absolute Deviation"] = point["dataset"].agg(percentile_abs_dev, quantile=0.75)
+    # point["25th Percentile Absolute Deviation"] = point["dataset"].agg(percentile_abs_dev, quantile=0.25)
+    # point["1st Percentile Absolute Deviation"] = point["dataset"].agg(percentile_abs_dev, quantile=0.01)
+    # point["0.1st Percentile Absolute Deviation"] = point["dataset"].agg(percentile_abs_dev, quantile=0.001)
+    # point["0.01st Percentile Absolute Deviation"] = point["dataset"].agg(percentile_abs_dev, quantile=0.0001)
 
     # ewm = point["dataset"].ewm(com=0.5)
 
@@ -280,7 +298,7 @@ def create_datapoint(dp, data):
     # point["EWM Average Median"] = ewm_mean.median()
     # point["EWM Average Standard Deviation"] = ewm_mean.std()
     # point["EWM Average Mean Absolute Deviation"] = ewm_mean.mad()
-    # point["EWM Average Median Absolute Deviation"] = ewm_mean.agg(quantile_abs_dev, quantile=0.5)
+    # point["EWM Average Median Absolute Deviation"] = ewm_mean.agg(percentile_abs_dev, quantile=0.5)
     # point["EWM Average 99th Percentile"] = ewm_mean.quantile(0.99)
     # point["EWM Average 95th Percentile"] = ewm_mean.quantile(0.95)
     # point["EWM Average 90th Percentile"] = ewm_mean.quantile(0.90)
@@ -289,21 +307,21 @@ def create_datapoint(dp, data):
     # point["EWM Average 1st Percentile"] = ewm_mean.quantile(0.01)
     # point["EWM Average 0.1st Percentile"] = ewm_mean.quantile(0.001)
     # point["EWM Average 0.01st Percentile"] = ewm_mean.quantile(0.0001)
-    # point["EWM Average 99th Percentile Absolute Deviation"] = ewm_mean.agg(quantile_abs_dev, quantile=0.99)
-    # point["EWM Average 95th Percentile Absolute Deviation"] = ewm_mean.agg(quantile_abs_dev, quantile=0.95)
-    # point["EWM Average 90th Percentile Absolute Deviation"] = ewm_mean.agg(quantile_abs_dev, quantile=0.9)
-    # point["EWM Average 75th Percentile Absolute Deviation"] = ewm_mean.agg(quantile_abs_dev, quantile=0.75)
-    # point["EWM Average 25th Percentile Absolute Deviation"] = ewm_mean.agg(quantile_abs_dev, quantile=0.25)
-    # point["EWM Average 1st Percentile Absolute Deviation"] = ewm_mean.agg(quantile_abs_dev, quantile=0.01)
-    # point["EWM Average 0.1st Percentile Absolute Deviation"] = ewm_mean.agg(quantile_abs_dev, quantile=0.001)
-    # point["EWM Average 0.01st Percentile Absolute Deviation"] = ewm_mean.agg(quantile_abs_dev, quantile=0.0001)
+    # point["EWM Average 99th Percentile Absolute Deviation"] = ewm_mean.agg(percentile_abs_dev, quantile=0.99)
+    # point["EWM Average 95th Percentile Absolute Deviation"] = ewm_mean.agg(percentile_abs_dev, quantile=0.95)
+    # point["EWM Average 90th Percentile Absolute Deviation"] = ewm_mean.agg(percentile_abs_dev, quantile=0.9)
+    # point["EWM Average 75th Percentile Absolute Deviation"] = ewm_mean.agg(percentile_abs_dev, quantile=0.75)
+    # point["EWM Average 25th Percentile Absolute Deviation"] = ewm_mean.agg(percentile_abs_dev, quantile=0.25)
+    # point["EWM Average 1st Percentile Absolute Deviation"] = ewm_mean.agg(percentile_abs_dev, quantile=0.01)
+    # point["EWM Average 0.1st Percentile Absolute Deviation"] = ewm_mean.agg(percentile_abs_dev, quantile=0.001)
+    # point["EWM Average 0.01st Percentile Absolute Deviation"] = ewm_mean.agg(percentile_abs_dev, quantile=0.0001)
 
     # ewm_std = ewm.std()
     # point["EWM Standard Deviation Mean"] = ewm_std.mean()
     # point["EWM Standard Deviation Median"] = ewm_std.median()
     # point["EWM Standard Deviation Standard Deviation"] = ewm_std.std()
     # point["EWM Standard Deviation Mean Absolute Deviation"] = ewm_std.mad()
-    # point["EWM Standard Deviation Median Absolute Deviation"] = ewm_std.agg(quantile_abs_dev, quantile=0.5)
+    # point["EWM Standard Deviation Median Absolute Deviation"] = ewm_std.agg(percentile_abs_dev, quantile=0.5)
     # point["EWM Standard Deviation 99th Percentile"] = ewm_std.quantile(0.99)
     # point["EWM Standard Deviation 95th Percentile"] = ewm_std.quantile(0.95)
     # point["EWM Standard Deviation 90th Percentile"] = ewm_std.quantile(0.90)
@@ -312,15 +330,15 @@ def create_datapoint(dp, data):
     # point["EWM Standard Deviation 1st Percentile"] = ewm_std.quantile(0.01)
     # point["EWM Standard Deviation 0.1st Percentile"] = ewm_std.quantile(0.001)
     # point["EWM Standard Deviation 0.01st Percentile"] = ewm_std.quantile(0.0001)
-    # point["EWM Standard Deviation 99th Percentile Absolute Deviation"] = ewm_std.agg(quantile_abs_dev, quantile=0.99)
-    # point["EWM Standard Deviation 95th Percentile Absolute Deviation"] = ewm_std.agg(quantile_abs_dev, quantile=0.95)
-    # point["EWM Standard Deviation 90th Percentile Absolute Deviation"] = ewm_std.agg(quantile_abs_dev, quantile=0.9)
-    # point["EWM Standard Deviation 75th Percentile Absolute Deviation"] = ewm_std.agg(quantile_abs_dev, quantile=0.75)
-    # point["EWM Standard Deviation 25th Percentile Absolute Deviation"] = ewm_std.agg(quantile_abs_dev, quantile=0.25)
-    # point["EWM Standard Deviation 1st Percentile Absolute Deviation"] = ewm_std.agg(quantile_abs_dev, quantile=0.01)
-    # point["EWM Standard Deviation 0.1st Percentile Absolute Deviation"] = ewm_std.agg(quantile_abs_dev, quantile=0.001)
+    # point["EWM Standard Deviation 99th Percentile Absolute Deviation"] = ewm_std.agg(percentile_abs_dev, quantile=0.99)
+    # point["EWM Standard Deviation 95th Percentile Absolute Deviation"] = ewm_std.agg(percentile_abs_dev, quantile=0.95)
+    # point["EWM Standard Deviation 90th Percentile Absolute Deviation"] = ewm_std.agg(percentile_abs_dev, quantile=0.9)
+    # point["EWM Standard Deviation 75th Percentile Absolute Deviation"] = ewm_std.agg(percentile_abs_dev, quantile=0.75)
+    # point["EWM Standard Deviation 25th Percentile Absolute Deviation"] = ewm_std.agg(percentile_abs_dev, quantile=0.25)
+    # point["EWM Standard Deviation 1st Percentile Absolute Deviation"] = ewm_std.agg(percentile_abs_dev, quantile=0.01)
+    # point["EWM Standard Deviation 0.1st Percentile Absolute Deviation"] = ewm_std.agg(percentile_abs_dev, quantile=0.001)
     # point["EWM Standard Deviation 0.01st Percentile Absolute Deviation"] = ewm_std.agg(
-    #     quantile_abs_dev, quantile=0.0001
+    #     percentile_abs_dev, quantile=0.0001
     # )
 
     return point

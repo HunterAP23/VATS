@@ -12,7 +12,7 @@ from typing import Optional
 # 2 -> WARNING
 # 3 -> ERROR
 # 4 -> CRITICAL
-class HunterAP_Logger:
+class VMAF_Logger:
     def __init__(
         self,
         name: Optional[str] = "log",
