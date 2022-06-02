@@ -139,3 +139,9 @@ Pipfile.lock
 *.csv
 *.json
 *.xml
+
+# VMAF-Suite-specific directories
+reference
+encoded
+data
+graphs

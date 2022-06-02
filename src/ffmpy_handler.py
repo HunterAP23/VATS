@@ -30,7 +30,7 @@ class FFmpy_Handler:
         #     program="Calculations"
         # )
         self._validate_ffmpeg(executable_ffmpeg)
-        self._get_libs()
+        self._get_libraries()
 
     def _validate_ffmpeg(self, executable: str) -> bool:
         self.run_command(
@@ -42,11 +42,11 @@ class FFmpy_Handler:
         )
         self._executable_ffmpeg = executable
 
-    def _get_libs(self):
-        libs_out, libs_err = self.run_command(ff_globals="-buildconf")
-        libs_out_str = libs_out.decode("utf-8")
+    def _get_libraries(self):
+        libraries_out, libraries_err = self.run_command(ff_globals="-buildconf")
+        libraries_out_str = libraries_out.decode("utf-8")
 
-        for line in libs_out_str.split("\n"):
+        for line in libraries_out_str.split("\n"):
             self._libraries.append(line.strip().replace("\r", ""))
 
     def run_command(

@@ -2,7 +2,7 @@ default_language_version:
   python: python3.9
 repos:
   - repo: https://github.com/psf/black
-    rev: 21.12b0
+    rev: 22.3.0
     hooks:
       - id: black
         name: black (python)
@@ -13,8 +13,8 @@ repos:
       - id: isort
         name: isort (python)
 
-  - repo: https://github.com/pycqa/flake8
-    rev: '4.0.1'
-    hooks:
-      - id: flake8
-        name: flake8 (python)
+  # - repo: https://github.com/pycqa/flake8
+  #   rev: '4.0.1'
+  #   hooks:
+  #     - id: flake8
+  #       name: flake8 (python)

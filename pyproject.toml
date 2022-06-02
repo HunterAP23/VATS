@@ -5,24 +5,50 @@ line-length = 120
 profile = "black"
 multi_line_output = 3
 
+[tool.poetry]
+name = "VMAF-Suite"
+version = "0.1.0"
+description = ""
+authors = ["Hunter <hunterap23@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+defusedxml = ">=0.7.1"
+ffmpy = ">=0.3.0"
+gooey = ">=1.0.8.1"
+matplotlib = ">=3.4.1"
+numpy = ">=1.20.2"
+pandas = ">=1.3.3"
+toml = ">=0.10.2"
+tqdm = ">=4.62.3"
+
+[tool.poetry.dev-dependencies]
+black = "*"
+isort = "*"
+flake8 = "*"
+# flake8-spellcheck = "*"
+pre-commit = "*"
+pyinstaller = "*"
+vermin = "*"
+
 [vmaf.general]
-ffmpeg = 'ffmpeg'
+ffmpeg = "ffmpeg"
 
 [vmaf.calculator]
 psnr = true
 ssim = true
 ms_ssim = true
 subsamples = 1
-models = [ 'vmaf_v0.6.1' ]
-log_path = 'vmaf'
-log_format = 'xml'
+models = [ "vmaf_v0.6.1", "vmaf_v0.6.1neg", "vmaf_4k_v0.6.1" ]
+log_path = "vmaf"
+log_format = "xml"
 hwaccel = false
 threads = 0
 processes = 1
 use_remaining_threads = false
 
 [vmaf.plotter.graphing]
-output = 'vmaf'
+output = "vmaf"
 custom = 0
 threads = 0
 processes = 1
@@ -31,7 +57,7 @@ use_remaining_threads = false
 [vmaf.plotter.image]
 x = 1920.0
 y = 1080.0
-format = 'svg'
+format = "svg"
 transparent = true
 
 [vmaf.plotter.video]

@@ -27,7 +27,7 @@ from vmaf_report_handler import VMAF_Report_Handler
 
 
 @Gooey(
-    program_name="VMAF Plotter",
+    program_name="VMAF Suite Plotter",
     default_size=(1280, 720),
     advanced=True,
     use_cmd_args=True,
@@ -951,7 +951,7 @@ def main(args, original_location):
         dict_scores_dist_rankings = {}
 
         print("Aggregating rankings for each metric...")
-        # Rankings for distorted files on a per-model basis
+        # Rankings for encoded files on a per-model basis
         for model in sorted(df_scores.keys()):
             for point in args.datapoints:
                 for metric, metric_rank in metrics.items():
@@ -965,7 +965,7 @@ def main(args, original_location):
             df_rankings[model]["OVERALL SCORE"] = df_rankings[model].sum(axis=1)
             df_scores[model] = df_scores[model].transpose()
 
-        # Rankings for distorted files among all models
+        # Rankings for encoded files among all models
         for name in sorted(df_scores_dist.keys()):
             if name not in dict_scores_dist_rankings:
                 dict_scores_dist_rankings[name] = pd.Series(dtype="float64")
