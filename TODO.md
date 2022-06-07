@@ -29,8 +29,6 @@
 
 
 ## Encoder
-- [x] Define if this is necessary - should the program take already encoded files, or should it encode AND calculate VMAF at the same time? (Priority: High)
-    - The program will only encode files, not calculate VMAF for them. This is so we can measure the file size and encode times for comparison between all the files.
 - [ ] Create an async encoder app for all combinations specified in a config (Priority: High)
 - [ ] Let user specify an encoder, and then dynamically generate GUI selectors for all the available options presented (Priority: Medium)
     - Requires running ffmpeg with options `-h encoder=X` and parsing that output BEFORE `gooey` initializes the display
@@ -102,7 +100,7 @@
     - SSIM
     - MS-SSIM
     - Encode time
-    - Output file size when not targeting specific bitrate)
+    - Output file size (when not targeting specific bitrate)
 - [ ] Convert encoded videos back to same color format / range / scale:
     - Convert [cmp] color to [ref] color.
     - Scale [cmp] size to [ref] size using bicubic scaling.

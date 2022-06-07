@@ -250,7 +250,7 @@ def read_completions(ref):
     Returns:
         _type_: _description_
     """
-    ref_path = Path(args.Reference)
+    ref_path = Path(ref)
     completions_file = Path(ref_path.parent.joinpath("{}_completions.json".format(ref_path.stem)))
     if completions_file.exists():
         with open(str(completions_file), "r") as reader:
@@ -274,7 +274,7 @@ def write_state(
         )
 
 
-if __name__ == "__main__":
+def main():
     curdir = None
     if getattr(sys, "frozen", False):
         curdir = Path(sys.executable).parent
@@ -650,3 +650,7 @@ if __name__ == "__main__":
         print(aggregate[enc]["msg"])
         for model in models.keys():
             print(io[enc][model]["msg"])
+
+
+if __name__ == "__main__":
+    main()

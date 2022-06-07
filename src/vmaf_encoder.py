@@ -19,7 +19,11 @@ def create_window(theme):
 
     main_frame = None
 
-    should_continue = True if sg.PopupYesNo("Do you want to continue where you last left off?") == "Yes" else False
+    should_continue = (
+        True
+        if sg.PopupYesNo("Do you have a progress JSON file you want to use to pick up where you left off?") == "Yes"
+        else False
+    )
 
     should_clean = None
     progress_file = None
@@ -90,7 +94,7 @@ def create_window(theme):
     window = (
         sg.Window(
             "Window Title",
-            font=("Helvetica", 13),
+            font=("Calibri", 16),
             default_button_element_size=(100, 30),
             auto_size_buttons=True,
             size=(1280, 720),
