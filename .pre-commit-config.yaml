@@ -13,8 +13,8 @@ repos:
       - id: isort
         name: isort (python)
 
-  - repo: https://github.com/pycqa/flake8
-    rev: '4.0.1'
-    hooks:
-      - id: flake8
-        name: flake8 (python)
+  # - repo: https://github.com/pycqa/flake8
+  #   rev: '4.0.1'
+  #   hooks:
+  #     - id: flake8
+  #       name: flake8 (python)

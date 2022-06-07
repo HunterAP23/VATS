@@ -10,7 +10,7 @@ from typing import Iterable, Literal, Optional, Union
 
 def print_dict(
     item,
-    tablevel=1,
+    tablevel=0,
     show_hidden=False,
 ):
     for key, val in item.items():
@@ -89,19 +89,19 @@ def find_by_exts(
         for loc in chain.from_iterable(map(Path(loc).rglob, globs)):
             if should_print:
                 print("Found file {}".format(loc))
-            yield str(loc)
+            yield str(loc).replace("\\", "/")
     else:
         for loc in chain.from_iterable(map(Path(loc).glob, globs)):
             if should_print:
                 print("Found file {}".format(loc))
-            yield str(loc)
+            yield str(loc).replace("\\", "/")
 
 
 def search_handler(
     item,
     search_for: Literal[
         "reference",
-        "distorted",
+        "encoded",
         "model",
         "report",
     ] = "reference",
@@ -114,8 +114,9 @@ def search_handler(
             if item_path.is_dir():
                 raise OSError('ERROR: Reference argument must be a file, but "{}" is a directory.'.format(item))
             return
-        # When searching for distorted video files
-        elif search_for == "distorted":
+        # When searching for encoded video files
+        elif search_for == "encoded":
+            print("looking inside {}".format(item_path))
             if item_path.is_dir():
                 # Scan for MKV and MP4 files
                 return list(find_by_exts(item_path, exts=["mkv", "mp4"], rec=recurse, should_print=False))
@@ -127,7 +128,7 @@ def search_handler(
                         item_path,
                     ]
                 else:
-                    print("Distorted file {} is not a video file.".format(item))
+                    print("Encoded file {} is not a video file.".format(item))
         # When searching for VMAF model file
         elif search_for == "model":
             if item_path.is_dir():

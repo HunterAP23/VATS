@@ -1,4 +1,4 @@
-# VMAF-Over-Time
+# VMAF-Suite
 This script is a combination of forking
 [master-of-zen/Plot_Vmaf](https://github.com/master-of-zen/Plot_Vmaf) and
 combining it with the live motion graphing from my own repository
@@ -6,20 +6,45 @@ combining it with the live motion graphing from my own repository
 
 ## Summary
 There are two parts to this project:
-1. Calculating VMAF through the use of the FFmpeg program with the ability to run
+1. Encoding different versions of the reference videos, and measuring their
+performance based on encode time.
+2. Calculating VMAF through the use of the FFmpeg program with the ability to run
 multiple instances at once to max out the speed of the calculations. VMAF scales
 with threads up to a certain point, and this part of the script can help
-2. Generate image and video graphs of the different VMAF related metrics. The
-metrics include PSNR, SSIM, SSIM, and others that VMAF normally generates. The
+3. Generate image and video graphs of the different VMAF related metrics. The
+metrics include  SSIM, MS-SSIM, and others that VMAF normally generates. The
 video file is a live playback of the values to be used in situations like
 benchmark videos.
 
+## Quick Start
+NOTICE: The app is currently not in a working state. Follow for updates and future releases.
+<!-- Simply download the newest release from the
+[releases section](https://github.com/HunterAP23/VMAF-Suite/releases),
+and run the executable. -->
+
+## VMAF Suite Encoder
+WIP
+
+## VMAF Suite Calculator
+Using FFmpeg, the script calculates the VMAF score as well as related metrics
+like PSNR, SSIM, and MS_SSIM. It also attempts to utilize multithreading where
+available, with the main focus being able to run multiple VMAF calculations
+simultaneously to maximize the speed of all calculations.
+
+## VMAF Suite Plotter
+This will generate a single image to show the VMAF values for the inputted VMAF
+file overall, and generate a video file that is animated to move through the
+graph, both at the same framerate (as reported by the source VMAF report) and
+has a transparent background.
+![](graph_examples/plot_720p_default.svg)
+
+# Development and Contributing
 ## CONTRIBUTING
 Please read the [CONTRIBUTING.md](CONTRIBUTING.md) file to see how to set up
 your development environment.
 
-## Requirements
-Python 3.8 or newer<br>
+## Development Requirements
+Python 3.8 or newer  
 FFmpeg
 
 ### Normal Setup
@@ -33,43 +58,13 @@ python -m pip install -r requirements.txt
 ```
 
 ### Advanced Setup
-If you instead want to keep your global python packages tidy, you can use the
-`pipenv` python package.
-1. Install `pipenv` with:
-```
-pip install pipenv
-```
-OR
-```
-python -m pip install pipenv
-```
-2. Create a virtual environment and install the required packages to it.
-```
-pipenv update
-```
-3. Before running any of the programs, you'll have to enter the pipenv
-environment like so:
-```
-pipenv shell
-```
-Then you can run the commands for the programs in this project.
+Use any package management tool like `pipenv`, `poetry`, or something else to
+create a virtual environment for the project.
 
-Alternatively, you can run the programs directly without entering the pipenv
-environment. For example, if you wanted to get the help info for the VMAF
-Calculator program, you can do so like this:
-```
-pipenv run python vmaf_calculator.py -h
-```
-
-# VMAF Calculator
-Using FFmpeg, the script calculates the VMAF score as well as related metrics
-like PSNR, SSIM, and MS_SSIM. It also attempts to utilize multithreading where
-available, with the main focus being able to run multiple VMAF calculations
-simultaneously to maximize the speed of all calculations.
-
+<!---
 ### Usage
 ```
-usage: VMAF Calculator -r REFERENCE [-d [DISTORTED ...]] [-f FFMPEG] [-t THREADS] [-p PROCESSES] [-c] [--psnr]
+usage: VMAF Calculator -r REFERENCE [-d [ENCODED ...]] [-f FFMPEG] [-t THREADS] [-p PROCESSES] [-c] [--psnr]
                        [--ssim] [--ms-ssim] [--subsamples SUBSAMPLES] [-m [MODEL ...]] [-l {xml,csv,json}] [--hwaccel]
                        [-h] [-v]
 ```
@@ -84,11 +79,11 @@ optional arguments:
                         Reference video file().
                         The program expects a single "reference" file.
 
-  -d [DISTORTED ...], --distorted [DISTORTED ...]
-                        Distorted video file().
-                        Specifying a single "distorted" file will only run a single VMAF calculation instance between it and the "reference" file.
-                        Specifying multiple "distorted" files will compare the "reference" file against all the "distorted" files.
-                        Specifying a directory for the "distorted" argument will scan the diretory for any MP4 and MKV files to compare against the "reference" file.
+  -d [ENCODED ...], --encoded [ENCODED ...]
+                        Encoded video file().
+                        Specifying a single "encoded" file will only run a single VMAF calculation instance between it and the "reference" file.
+                        Specifying multiple "encoded" files will compare the "reference" file against all the "encoded" files.
+                        Specifying a directory for the "encoded" argument will scan the diretory for any MP4 and MKV files to compare against the "reference" file.
                         You can provide any combination of files and directories.
 
 
@@ -124,7 +119,7 @@ Optional arguments:
 
   -m [MODEL ...], --model [MODEL ...]
                         Specify the VMAF model files to use. This argument expects a list of model files to use.
-                        The program will calculate the VMAF scores for every distorted file, for every model given.
+                        The program will calculate the VMAF scores for every encoded file, for every model given.
                         Note that VMAF models come in JSON format, and the program will only accept those models.
 
   -l {xml,csv,json}, --log-format {xml,csv,json}
@@ -140,14 +135,9 @@ Miscellaneous arguments:
   -h, --help            Show this help message and exit.
   -v, --version         show program's version number and exit
 ```
+-->
 
-## VMAF Plotter
-This will generate a single image to show the VMAF values for the inputted VMAF
-file overall, and generate a video file that is animated to move through the
-graph, both at the same framerate (as reported by the source VMAF report) and
-has a transparent background.
-![](graph_examples/plot_720p_default.svg)
-
+<!---
 ### Usage
 ```
 usage: VMAF Plotter [-c CONFIG] [-o OUTPUT] [-t [{image,video,stats,agg,all} ...]]
@@ -163,9 +153,9 @@ Arguments will override the values for the variables set in the config file when
 Settings that are not specified in the config file will use default values as deemed by the program.
 
 positional arguments:
-  VMAF                  Directories containing subdirectories, which should contain the VMAF report files and distorted video files.
+  VMAF                  Directories containing subdirectories, which should contain the VMAF report files and encoded video files.
                         The program will scan for inside the provided directories for subdirectories ending with "_results".
-                        The subdirectories are expected to contain reports in CSV, JSON, and XML format that end with "_statistics" and be alongside the distorted video files.
+                        The subdirectories are expected to contain reports in CSV, JSON, and XML format that end with "_statistics" and be alongside the encoded video files.
 
 
 Optional arguments:
@@ -204,7 +194,7 @@ Miscellaneous arguments:
   -h, --help            Show this help message and exit.
   -v, --version         show program's version number and exit
 ```
-
+-->
 
 ### Quality & Performance Considerations
 The default resolution for the graph image and video is 1080p.
