@@ -1,4 +1,4 @@
-# VMAF-Suite
+# Video Quality Metrics Suite
 This script is a combination of forking
 [master-of-zen/Plot_Vmaf](https://github.com/master-of-zen/Plot_Vmaf) and
 combining it with the live motion graphing from my own repository
@@ -19,19 +19,19 @@ benchmark videos.
 ## Quick Start
 NOTICE: The app is currently not in a working state. Follow for updates and future releases.
 <!-- Simply download the newest release from the
-[releases section](https://github.com/HunterAP23/VMAF-Suite/releases),
+[releases section](https://github.com/HunterAP23/VQMS/releases),
 and run the executable. -->
 
-## VMAF Suite Encoder
+## VQMS Encoder
 WIP
 
-## VMAF Suite Calculator
+## VQMS Calculator
 Using FFmpeg, the script calculates the VMAF score as well as related metrics
 like PSNR, SSIM, and MS_SSIM. It also attempts to utilize multithreading where
 available, with the main focus being able to run multiple VMAF calculations
 simultaneously to maximize the speed of all calculations.
 
-## VMAF Suite Plotter
+## VQMS Plotter
 This will generate a single image to show the VMAF values for the inputted VMAF
 file overall, and generate a video file that is animated to move through the
 graph, both at the same framerate (as reported by the source VMAF report) and
