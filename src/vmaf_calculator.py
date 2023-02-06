@@ -501,7 +501,13 @@ def main():
             exit()
 
             # Submit the actual run Future as a key
-            my_ffs[cf_handler.submit(ff_tmp.run, stdout=sp.PIPE, stderr=sp.PIPE,)] = {
+            my_ffs[
+                cf_handler.submit(
+                    ff_tmp.run,
+                    stdout=sp.PIPE,
+                    stderr=sp.PIPE,
+                )
+            ] = {
                 "ff": ff_tmp,
                 "enc": enc,
             }
