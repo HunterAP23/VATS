@@ -140,11 +140,8 @@ Pipfile.lock
 *.json
 *.xml
 
-# VMAF-Suite-specific directories
+# VATS directories
 reference
 encoded
 data
 graphs
-
-# poetry file
-poetry.lock

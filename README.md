@@ -1,4 +1,4 @@
-# Video Quality Metrics Suite
+# Visual Analytics and Transformation Suite
 This script is a combination of forking
 [master-of-zen/Plot_Vmaf](https://github.com/master-of-zen/Plot_Vmaf) and
 combining it with the live motion graphing from my own repository
@@ -8,7 +8,7 @@ combining it with the live motion graphing from my own repository
 There are two parts to this project:
 1. Encoding different versions of the reference videos, and measuring their
 performance based on encode time.
-2. Calculating VMAF through the use of the FFmpeg program with the ability to run
+2. Calculating VMAF and other metrics through the use of the FFmpeg program with the ability to run
 multiple instances at once to max out the speed of the calculations. VMAF scales
 with threads up to a certain point, and this part of the script can help
 3. Generate image and video graphs of the different VMAF related metrics. The
@@ -19,19 +19,19 @@ benchmark videos.
 ## Quick Start
 NOTICE: The app is currently not in a working state. Follow for updates and future releases.
 <!-- Simply download the newest release from the
-[releases section](https://github.com/HunterAP23/VQMS/releases),
+[releases section](https://github.com/HunterAP23/VATS/releases),
 and run the executable. -->
 
-## VQMS Encoder
+## VATS Encoder
 WIP
 
-## VQMS Calculator
+## VATS Calculator
 Using FFmpeg, the script calculates the VMAF score as well as related metrics
 like PSNR, SSIM, and MS_SSIM. It also attempts to utilize multithreading where
 available, with the main focus being able to run multiple VMAF calculations
 simultaneously to maximize the speed of all calculations.
 
-## VQMS Plotter
+## VATS Plotter
 This will generate a single image to show the VMAF values for the inputted VMAF
 file overall, and generate a video file that is animated to move through the
 graph, both at the same framerate (as reported by the source VMAF report) and
@@ -58,8 +58,7 @@ python -m pip install -r requirements.txt
 ```
 
 ### Advanced Setup
-Use any package management tool like `pipenv`, `poetry`, or something else to
-create a virtual environment for the project.
+Use any package management tool like `pipenv` or `uv` to create a virtual environment for the project.
 
 <!---
 ### Usage

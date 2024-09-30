@@ -48,7 +48,7 @@ program (NOTE: this is a planned feature for the future!)
 ## Guidelines
 The best way to support this project is to look at the items in the
 [TODO.md](TODO.md) file and see what's left to be done. There are also
-[projects on the GitHub page](https://github.com/HunterAP23/VMAF-Suite/projects)
+[projects on the GitHub page](https://github.com/HunterAP23/VATS/projects)
 that you can take a look at to contribute to. You can even help on migrating
 the stuff in the TODO.md file into projects on GitHub.
 

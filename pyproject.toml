@@ -1,3 +1,34 @@
+[project]
+name = "VATS"
+version = "0.1"
+description = "Visual Analytics and Transformation Suite"
+authors = [{ name = "Etgar Kaspi", email = "etgarkaspi@gmail.com" }]
+requires-python = ">=3.8"
+keywords = [
+  "ffmpeg", "ffprobe", "vmaf", "ssim", "ms-ssim", "psnr", "psnr-hvs", "media", "video", "quality"
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Intended Audience :: End Users/Desktop",
+  "Operating System :: Microsoft :: Windows",
+  "Operating System :: POSIX :: Linux",
+  "Operating System :: MacOS",
+  "License :: OSI Approved :: MIT License",
+  "License :: OSI Approved :: Apache Software License",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3 :: Only",
+  "Topic :: Software Development :: Quality Assurance",
+  "Topic :: Software Development :: Testing",
+  "Topic :: Software Development :: Libraries",
+]
+readme = "README.md"
+
 [tool.black]
 line-length = 120
 
@@ -5,13 +36,7 @@ line-length = 120
 profile = "black"
 multi_line_output = 3
 
-[tool.poetry]
-name = "VMAF-Suite"
-version = "0.1.0"
-description = ""
-authors = ["Hunter <hunterap23@gmail.com>"]
-
-[tool.poetry.dependencies]
+[dependencies]
 python = "^3.8"
 defusedxml = ">=0.7.1"
 ffmpy = ">=0.3.0"
@@ -22,7 +47,7 @@ pandas = ">=1.3.3"
 toml = ">=0.10.2"
 tqdm = ">=4.62.3"
 
-[tool.poetry.dev-dependencies]
+[dev-dependencies]
 black = "*"
 isort = "*"
 flake8 = "*"

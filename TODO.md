@@ -3,8 +3,7 @@
 - [ ] Convert config files to `toml` format. (Priority: High)
     - [x] Convert config file to `toml`.
     - [ ] Convert parsing to handle the new `toml` format.
-- [ ] Move from `pipenv` package manager to `poetry` (Priority: High)
-    - Reasoning is that `poetry` supports setting a minimum Python version, while `pipenv` does not.
+- [ ] Move from `pipenv` package manager to `uv` (Priority: High)
 - [ ] Package app into single executable for each operating system
     - [ ] Create central app with GUI
         - [ ] Should contain three tabs:
