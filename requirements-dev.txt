@@ -30,7 +30,7 @@ filelock==3.16.1
     # via virtualenv
 flake8==7.1.1
     # via -r requirements-dev.txt
-fonttools==4.54.1
+fonttools==4.60.2
     # via matplotlib
 gooey==1.0.8.1
     # via -r requirements-dev.txt
