@@ -27,7 +27,7 @@ packaging==24.1
     # via matplotlib
 pandas==1.4.2
     # via -r requirements.txt
-pillow==10.4.0
+pillow==12.3.0
     # via
     #   gooey
     #   matplotlib
