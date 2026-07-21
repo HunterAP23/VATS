@@ -68,7 +68,7 @@ pathspec==0.12.1
     # via black
 pefile==2024.8.26 ; sys_platform == 'win32'
     # via pyinstaller
-pillow==10.4.0
+pillow==12.3.0
     # via
     #   gooey
     #   matplotlib
