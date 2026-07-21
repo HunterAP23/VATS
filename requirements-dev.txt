@@ -4,7 +4,7 @@ altgraph==0.17.4
     # via
     #   macholib
     #   pyinstaller
-black==24.8.0
+black==26.3.1
     # via -r requirements-dev.txt
 cfgv==3.4.0
     # via pre-commit
